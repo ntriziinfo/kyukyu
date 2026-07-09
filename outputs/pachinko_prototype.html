@@ -55,12 +55,17 @@
       height: min(980px, calc(100vh - 20px));
       min-height: 760px;
       border: 1px solid rgba(255, 255, 255, .22);
-      border-radius: 8px;
+      border-radius: 42px 42px 28px 28px;
       background:
-        linear-gradient(160deg, rgba(255, 255, 255, .10), transparent 24%),
+        radial-gradient(ellipse at 50% 40%, rgba(102, 227, 255, .14), transparent 42%),
+        radial-gradient(ellipse at 50% 8%, rgba(255, 255, 255, .18), transparent 28%),
+        linear-gradient(160deg, rgba(255, 255, 255, .12), transparent 24%),
         linear-gradient(22deg, rgba(255, 211, 106, .08), transparent 52%),
         #121923;
-      box-shadow: 0 22px 70px rgba(0, 0, 0, .46), inset 0 0 0 5px rgba(255, 255, 255, .05);
+      box-shadow:
+        0 22px 70px rgba(0, 0, 0, .46),
+        inset 0 0 0 5px rgba(255, 255, 255, .05),
+        inset 0 0 0 18px rgba(0, 0, 0, .14);
       overflow: hidden;
     }
 
@@ -70,12 +75,12 @@
       position: absolute;
       pointer-events: none;
       z-index: 3;
-      display: none;
+      display: block;
     }
 
     .machine::before {
-      inset: 96px 12px 12px;
-      border-radius: 8px;
+      inset: 94px 16px 16px;
+      border-radius: 48% 48% 44% 44% / 38% 38% 46% 46%;
       border: 1px solid rgba(210, 244, 255, .24);
       background:
         linear-gradient(112deg, rgba(255, 255, 255, .24), transparent 18%, transparent 68%, rgba(102, 227, 255, .10)),
@@ -88,12 +93,12 @@
     }
 
     .machine::after {
-      left: 28px;
-      right: 28px;
+      left: 14%;
+      right: 14%;
       top: 112px;
-      height: 22%;
-      border-radius: 999px 999px 24px 24px;
-      background: linear-gradient(180deg, rgba(255, 255, 255, .20), transparent 70%);
+      height: 18%;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at center, rgba(255, 255, 255, .22), transparent 72%);
       filter: blur(.2px);
       opacity: .42;
       mix-blend-mode: screen;
@@ -155,7 +160,7 @@
       inset: 96px 12px 12px;
       width: calc(100% - 24px);
       height: calc(100% - 108px);
-      border-radius: 8px;
+      border-radius: 40px 40px 24px 24px;
       background:
         radial-gradient(circle at center 42%, rgba(102, 227, 255, .10), transparent 34%),
         linear-gradient(#162334, #0b1118 70%);
@@ -1404,23 +1409,15 @@
     function playfieldShape() {
       return {
         x: sx(360),
-        y: sy(500),
-        rx: sx(432),
-        ry: sy(444),
-        topY: sy(42)
+        y: sy(492),
+        rx: sx(338),
+        ry: sy(418),
+        topY: sy(74)
       };
     }
 
     function collideWithPlayfieldCircle(ball) {
       const field = playfieldShape();
-      const flatTopHalf = field.rx * .93;
-      if (ball.y < field.topY + ball.r && Math.abs(ball.x - field.x) < flatTopHalf) {
-        ball.y = field.topY + ball.r;
-        ball.vy = Math.abs(ball.vy) * physics.wallRestitution;
-        ball.glow = 1;
-        return;
-      }
-
       const dx = ball.x - field.x;
       const dy = ball.y - field.y;
       const rx = field.rx - ball.r - 2;
@@ -2096,11 +2093,29 @@
       grad.addColorStop(.45, "#121923");
       grad.addColorStop(1, "#070b10");
       ctx.fillStyle = grad;
-      roundRect(0, 0, w, h, 8);
+      roundRect(0, 0, w, h, Math.max(28, w * .065));
       ctx.fill();
 
-      ctx.fillStyle = "rgba(0,0,0,.24)";
-      roundRect(w * .035, h * .055, w * .93, h * .90, Math.max(20, w * .035));
+      const bezel = ctx.createRadialGradient(w * .50, h * .46, w * .20, w * .50, h * .47, w * .58);
+      bezel.addColorStop(0, "rgba(255,255,255,.08)");
+      bezel.addColorStop(.60, "rgba(0,0,0,.20)");
+      bezel.addColorStop(1, "rgba(0,0,0,.56)");
+      ctx.fillStyle = bezel;
+      ctx.beginPath();
+      ctx.ellipse(w * .50, h * .50, w * .47, h * .45, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(255,255,255,.16)";
+      ctx.lineWidth = Math.max(6, w * .012);
+      ctx.beginPath();
+      ctx.ellipse(w * .50, h * .50, w * .465, h * .445, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      const lower = ctx.createLinearGradient(0, h * .78, 0, h);
+      lower.addColorStop(0, "rgba(255,255,255,.05)");
+      lower.addColorStop(1, "rgba(0,0,0,.42)");
+      ctx.fillStyle = lower;
+      roundRect(w * .055, h * .80, w * .89, h * .17, Math.max(28, w * .055));
       ctx.fill();
     }
 
@@ -2190,14 +2205,12 @@
     function playfieldPath(field, offset = 0) {
       const rx = field.rx + offset;
       const ry = field.ry + offset;
-      const topY = field.topY - offset * .15;
-      const leftTopX = field.x - rx * .93;
-      const rightTopX = field.x + rx * .93;
+      const topY = field.y - ry;
       const bottomY = field.y + ry;
-      ctx.moveTo(leftTopX, topY);
-      ctx.bezierCurveTo(field.x - rx * .54, topY - ry * .035, field.x + rx * .54, topY - ry * .035, rightTopX, topY);
-      ctx.bezierCurveTo(field.x + rx * 1.05, field.y + ry * .18, field.x + rx * .92, field.y + ry * .76, field.x, bottomY);
-      ctx.bezierCurveTo(field.x - rx * .92, field.y + ry * .76, field.x - rx * 1.05, field.y + ry * .18, leftTopX, topY);
+      ctx.moveTo(field.x, topY);
+      ctx.bezierCurveTo(field.x + rx * .88, topY + ry * .04, field.x + rx, field.y + ry * .36, field.x + rx * .76, field.y + ry * .72);
+      ctx.bezierCurveTo(field.x + rx * .48, bottomY - ry * .02, field.x - rx * .48, bottomY - ry * .02, field.x - rx * .76, field.y + ry * .72);
+      ctx.bezierCurveTo(field.x - rx, field.y + ry * .36, field.x - rx * .88, topY + ry * .04, field.x, topY);
       ctx.closePath();
     }
 
