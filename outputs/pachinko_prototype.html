@@ -963,7 +963,7 @@
       randomNailScatter: .18
     };
     const pockets = [
-      { x: 360, y: 776, w: 76, h: 30, r: 12, shape: "bowl", type: "start", label: "START", color: "#66e3ff" },
+      { x: 360, y: 770, r: 12, type: "start", label: "START", color: "#66e3ff" },
       { x: 632, y: 568, r: 38, type: "attacker", label: "V", color: "#ffd36a" },
       { x: 360, y: 900, r: 72, shape: "semicircle", type: "out", label: "", color: "#8895a4" }
     ];
@@ -1401,17 +1401,6 @@
               handlePocket({ ...pocket, type: "out", color: "#8895a4" }, ball.x, ball.y);
               break;
             }
-            if (pocket.type === "start" && !ball.startEligible) {
-              if (!ball.hesoSpillSide) {
-                state.spillFlip *= -1;
-                ball.hesoSpillSide = state.spillFlip;
-              }
-              ball.vx += ball.hesoSpillSide * .18;
-              ball.vy = Math.max(ball.vy, .36);
-              ball.x += ball.hesoSpillSide * ball.r * .45;
-              ball.y += ball.r * .20;
-              continue;
-            }
             ball.live = false;
             handlePocket(pocket, ball.x, ball.y);
             break;
@@ -1441,7 +1430,7 @@
     }
 
     function pocketHit(ball, pocket) {
-      if (pocket.shape === "bowl" || pocket.type === "start") {
+      if (pocket.shape === "bowl") {
         const topWidth = pocket.w;
         const bottomWidth = pocket.w * .56;
         const top = pocket.y;
@@ -1465,6 +1454,13 @@
         const dy = ball.y - pocket.y;
         const dist = Math.hypot(dx, dy);
         return ball.vy > 0 && ball.y + ball.r >= pocket.y - pocket.r && dist < pocket.r + ball.r * .65;
+      }
+      if (pocket.type === "start") {
+        const dist = Math.hypot(ball.x - pocket.x, ball.y - pocket.y);
+        const prevDist = Math.hypot((ball.prevX ?? ball.x) - pocket.x, (ball.prevY ?? ball.y) - pocket.y);
+        const gate = pocket.r + ball.r * .38;
+        const crossed = prevDist > gate && dist <= gate;
+        return ball.vy > 0 && (crossed || dist < pocket.r);
       }
       return Math.hypot(ball.x - pocket.x, ball.y - pocket.y) < pocket.r;
     }
@@ -3022,7 +3018,7 @@
         const x = sx(p.x);
         const y = sy(p.y);
         const r = p.r / 720 * canvas.clientWidth;
-        if (p.shape === "bowl" || p.type === "start") {
+        if (p.shape === "bowl") {
           const bw = (p.w || 104) / 720 * canvas.clientWidth;
           const bh = (p.h || 42) / 900 * canvas.clientHeight;
           const bottomW = bw * .56;
@@ -3310,7 +3306,7 @@
         ctx.fillStyle = p.type === "start" ? "rgba(102,227,255,.18)" : p.type === "attacker" ? "rgba(255,211,106,.18)" : p.type === "out" ? "rgba(148,163,184,.18)" : "rgba(99,242,161,.18)";
         ctx.strokeStyle = color;
         ctx.lineWidth = 2;
-        if (p.shape === "bowl" || p.type === "start") {
+        if (p.shape === "bowl") {
           const bw = (p.w || 76) / 720 * w;
           const bh = (p.h || 30) / 900 * h;
           roundRect(x - bw / 2, y, bw, bh, 6);
@@ -4379,6 +4375,9 @@
   </script>
 </body>
 </html>
+
+
+
 
 
 
