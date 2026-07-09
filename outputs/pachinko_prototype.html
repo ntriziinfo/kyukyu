@@ -1111,15 +1111,27 @@
         },
         {
           type: "curve",
-          label: "ステージ受け",
-          thickness: 24,
-          points: [{ x: 296, y: 702 }, { x: 360, y: 742 }, { x: 424, y: 702 }]
+          label: "ステージ左返し",
+          thickness: 16,
+          points: [{ x: 292, y: 704 }, { x: 318, y: 724 }, { x: 344, y: 730 }]
         },
         {
           type: "curve",
-          label: "ヘソ寄せ",
-          thickness: 18,
-          points: [{ x: 322, y: 746 }, { x: 360, y: 764 }, { x: 398, y: 746 }]
+          label: "ステージ右返し",
+          thickness: 16,
+          points: [{ x: 428, y: 704 }, { x: 402, y: 724 }, { x: 376, y: 730 }]
+        },
+        {
+          type: "curve",
+          label: "ヘソ左肩",
+          thickness: 12,
+          points: [{ x: 316, y: 742 }, { x: 336, y: 752 }, { x: 350, y: 754 }]
+        },
+        {
+          type: "curve",
+          label: "ヘソ右肩",
+          thickness: 12,
+          points: [{ x: 404, y: 742 }, { x: 384, y: 752 }, { x: 370, y: 754 }]
         },
         {
           type: "curve",
@@ -1144,7 +1156,44 @@
           points: [{ x: 582, y: 160 }, { x: 622, y: 184 }, { x: 602, y: 536 }, { x: 554, y: 514 }]
         }
       ].forEach(part => acrylicParts.push(normalizeAcrylic(part)));
+      migrateOpenHesoAcrylic();
       ensureExtraHitOptions();
+    }
+
+    function migrateOpenHesoAcrylic() {
+      for (let i = acrylicParts.length - 1; i >= 0; i--) {
+        const label = acrylicParts[i].label || "";
+        if (label === "ステージ受け" || label === "ヘソ寄せ") acrylicParts.splice(i, 1);
+      }
+      const has = label => acrylicParts.some(part => part.label === label);
+      [
+        {
+          type: "curve",
+          label: "ステージ左返し",
+          thickness: 16,
+          points: [{ x: 292, y: 704 }, { x: 318, y: 724 }, { x: 344, y: 730 }]
+        },
+        {
+          type: "curve",
+          label: "ステージ右返し",
+          thickness: 16,
+          points: [{ x: 428, y: 704 }, { x: 402, y: 724 }, { x: 376, y: 730 }]
+        },
+        {
+          type: "curve",
+          label: "ヘソ左肩",
+          thickness: 12,
+          points: [{ x: 316, y: 742 }, { x: 336, y: 752 }, { x: 350, y: 754 }]
+        },
+        {
+          type: "curve",
+          label: "ヘソ右肩",
+          thickness: 12,
+          points: [{ x: 404, y: 742 }, { x: 384, y: 752 }, { x: 370, y: 754 }]
+        }
+      ].forEach(part => {
+        if (!has(part.label)) acrylicParts.push(normalizeAcrylic(part));
+      });
     }
 
     function fitCanvas() {
@@ -4019,6 +4068,7 @@
       } else {
         setupDefaultAcrylicParts();
       }
+      migrateOpenHesoAcrylic();
       lockLcdAspect("hitW");
       state.selectedPin = -1;
       clearMultiSelection();
