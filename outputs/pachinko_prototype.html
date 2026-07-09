@@ -1054,7 +1054,9 @@
       line(588, 526, 674, 592, 7, "attacker", 2.9);
       line(638, 622, 512, 704, 9, "attacker", 2.9);
       line(456, 742, 512, 704, 6, "attacker", 2.8);
-      line(556, 704, 640, 748, 7, "attacker", 2.8);for (let row = 0; row < 8; row++) {
+      line(556, 704, 640, 748, 7, "attacker", 2.8);
+
+      for (let row = 0; row < 8; row++) {
         const y = 138 + row * 66;
         const count = row % 2 ? 7 : 8;
         const offset = row % 2 ? 40 : 18;
@@ -1084,6 +1086,65 @@
         { x: 590, y: 692, r: 2.9, kind: "attacker" },
         { x: 486, y: 668, r: 3.2, kind: "attacker" }
       );
+    }
+
+    function setupDefaultAcrylicParts() {
+      acrylicParts.length = 0;
+      [
+        {
+          type: "curve",
+          label: "左外周レール",
+          thickness: 24,
+          points: [{ x: 72, y: 120 }, { x: 54, y: 342 }, { x: 104, y: 548 }]
+        },
+        {
+          type: "curve",
+          label: "左寄りガイド",
+          thickness: 28,
+          points: [{ x: 106, y: 480 }, { x: 122, y: 566 }, { x: 248, y: 624 }]
+        },
+        {
+          type: "curve",
+          label: "道釘上アクリル",
+          thickness: 22,
+          points: [{ x: 182, y: 592 }, { x: 254, y: 650 }, { x: 344, y: 692 }]
+        },
+        {
+          type: "curve",
+          label: "ステージ受け",
+          thickness: 24,
+          points: [{ x: 296, y: 702 }, { x: 360, y: 742 }, { x: 424, y: 702 }]
+        },
+        {
+          type: "curve",
+          label: "ヘソ寄せ",
+          thickness: 18,
+          points: [{ x: 322, y: 746 }, { x: 360, y: 764 }, { x: 398, y: 746 }]
+        },
+        {
+          type: "curve",
+          label: "右打ちレール",
+          thickness: 26,
+          points: [{ x: 642, y: 94 }, { x: 690, y: 328 }, { x: 640, y: 560 }]
+        },
+        {
+          type: "curve",
+          label: "右アタッカー導入",
+          thickness: 24,
+          points: [{ x: 672, y: 584 }, { x: 604, y: 642 }, { x: 516, y: 704 }]
+        },
+        {
+          type: "poly",
+          label: "液晶左肩",
+          points: [{ x: 98, y: 184 }, { x: 138, y: 160 }, { x: 166, y: 514 }, { x: 118, y: 536 }]
+        },
+        {
+          type: "poly",
+          label: "液晶右肩",
+          points: [{ x: 582, y: 160 }, { x: 622, y: 184 }, { x: 602, y: 536 }, { x: 554, y: 514 }]
+        }
+      ].forEach(part => acrylicParts.push(normalizeAcrylic(part)));
+      ensureExtraHitOptions();
     }
 
     function fitCanvas() {
@@ -1616,15 +1677,15 @@
           target = { x: sx(612), y: sy(555), force: state.rightDeviceOpen ? .0022 : .0010 };
         }
       } else if (ball.y < sy(350)) {
-        target = { x: sx(84), y: sy(410), force: .00062 };
+        target = { x: sx(84), y: sy(410), force: .00034 };
       } else if (ball.y < sy(525)) {
-        target = { x: sx(96), y: sy(522), force: .00070 };
+        target = { x: sx(96), y: sy(522), force: .00038 };
       } else if (ball.y < sy(650)) {
-        target = { x: sx(250), y: sy(628), force: .00058 };
+        target = { x: sx(250), y: sy(628), force: .00030 };
       } else if (ball.y < sy(735)) {
-        target = { x: sx(ball.startEligible ? 366 : 344), y: sy(742), force: ball.startEligible ? .00076 : .00042 };
+        target = { x: sx(ball.startEligible ? 366 : 344), y: sy(742), force: ball.startEligible ? .00046 : .00022 };
       } else {
-        target = { x: sx(360), y: sy(ball.startEligible ? 772 : 812), force: ball.startEligible ? .00105 : .00038 };
+        target = { x: sx(360), y: sy(ball.startEligible ? 772 : 812), force: ball.startEligible ? .00072 : .00020 };
       }
       const dx = target.x - ball.x;
       const dy = target.y - ball.y;
@@ -1633,16 +1694,16 @@
       ball.vy += dy / dist * target.force * dt;
 
       if (!ball.rightShot && ball.x < sx(150) && ball.y < sy(560)) {
-        ball.vx += .0008 * dt;
-        ball.vy += .010 * dt;
+        ball.vx += .00025 * dt;
+        ball.vy += .0048 * dt;
       }
       if (!ball.rightShot && ball.age < 520 && ball.y < sy(190)) {
         ball.vx += .0032 * dt;
         if (ball.vx < .14) ball.vx = .14;
       }
       if (!ball.rightShot && ball.x > sx(430)) {
-        ball.vx += (sx(300) - ball.x) * .000042 * dt;
-        ball.vy += .0028 * dt;
+        ball.vx += (sx(300) - ball.x) * .000022 * dt;
+        ball.vy += .0020 * dt;
       }
       if (!ball.rightShot) {
         const wx = sx(hitAreas.windmill.x);
@@ -1652,25 +1713,25 @@
         const dw = Math.hypot(dxw, dyw);
         if (dw < sx(78) && dw > 1) {
           const spin = Math.sin(performance.now() / 260);
-          const rightBias = ball.startEligible ? .0038 : .0015;
-          const sideKick = dxw < 0 ? .0009 : .0016;
-          ball.vx += (rightBias + sideKick + spin * .0018) * dt;
-          ball.vy += .0022 * dt;
+          const rightBias = ball.startEligible ? .0022 : .0008;
+          const sideKick = dxw < 0 ? .0005 : .0009;
+          ball.vx += (rightBias + sideKick + spin * .0012) * dt;
+          ball.vy += .0014 * dt;
           ball.glow = Math.max(ball.glow, .82);
         }
       }
       if (!ball.rightShot && ball.y > sy(500) && ball.y < sy(650) && ball.x > sx(62) && ball.x < sx(300)) {
         if (!ball.leftLcdSplitSide) ball.leftLcdSplitSide = Math.random() < (ball.startEligible ? .72 : .46) ? 1 : -1;
         const splitX = ball.leftLcdSplitSide > 0 ? sx(ball.startEligible ? 358 : 314) : sx(148);
-        ball.vx += (splitX - ball.x) * .000034 * dt;
-        ball.vy += .0036 * dt;
+        ball.vx += (splitX - ball.x) * .000018 * dt;
+        ball.vy += .0024 * dt;
         if (Math.abs(ball.x - sx(220)) < sx(42)) {
           ball.vx += ball.leftLcdSplitSide * .0022 * dt;
         }
       }
       if (!ball.rightShot && ball.y > sy(520)) {
         const laneX = ball.y < sy(690) ? sx(ball.startEligible ? 342 : 304) : sx(356);
-        ball.vx += (laneX - ball.x) * .000014 * dt;
+        ball.vx += (laneX - ball.x) * .000008 * dt;
       }
       if (!ball.rightShot && ball.y > sy(690) && ball.y < sy(775) && Math.abs(ball.x - sx(360)) < sx(116)) {
         const centerPull = sx(360) - ball.x;
@@ -1679,8 +1740,8 @@
       }
       if (!ball.rightShot && ball.startEligible && ball.y > sy(650) && ball.y < sy(798)) {
         const hesoPull = sx(360) - ball.x;
-        ball.vx += hesoPull * .000082 * dt;
-        ball.vy += .0046 * dt;
+        ball.vx += hesoPull * .000046 * dt;
+        ball.vy += .0032 * dt;
       }
       if (!ball.rightShot && !ball.startEligible && ball.y > sy(790)) {
         if (!ball.hesoSpillSide) {
@@ -2072,6 +2133,7 @@
       playfieldPath(playfieldShape(), -Math.max(34, w * .055));
       ctx.stroke();
 
+      drawAcrylicParts(w, h);
       drawBoardOrnaments(w, h);
       drawNailHighlights(w, h);
       drawRightDevice(w, h);
@@ -3616,6 +3678,18 @@
     function serializeLayout() {
       return {
         pins: pins.map(roundPin),
+        acrylicParts: acrylicParts.map(part => {
+          const normalized = normalizeAcrylic(part);
+          return {
+            type: normalized.type || "poly",
+            label: normalized.label || "",
+            thickness: normalized.thickness,
+            points: normalized.points.map(point => ({
+              x: Math.round(point.x * 10) / 10,
+              y: Math.round(point.y * 10) / 10
+            }))
+          };
+        }),
         pockets: pockets.map(p => ({
           x: Math.round(p.x * 10) / 10,
           y: Math.round(p.y * 10) / 10,
@@ -3657,7 +3731,23 @@
         if (!next.hitAreas.launch && next.hitAreas.launchLeft) Object.assign(hitAreas.launch, next.hitAreas.launchLeft);
       }
       acrylicParts.length = 0;
-      ensureExtraHitOptions();
+      if (Array.isArray(next.acrylicParts)) {
+        next.acrylicParts.forEach(part => {
+          if (!Array.isArray(part.points) || part.points.length < 3) return;
+          acrylicParts.push(normalizeAcrylic({
+            type: part.type === "curve" ? "curve" : "poly",
+            label: part.label || "",
+            thickness: Number(part.thickness || 22),
+            points: part.points.map(point => ({
+              x: Number(point.x),
+              y: Number(point.y)
+            })).filter(point => Number.isFinite(point.x) && Number.isFinite(point.y))
+          }));
+        });
+        ensureExtraHitOptions();
+      } else {
+        setupDefaultAcrylicParts();
+      }
       lockLcdAspect("hitW");
       state.selectedPin = -1;
       clearMultiSelection();
@@ -3952,6 +4042,7 @@
 
     ensureExtraHitOptions();
     setupPins();
+    setupDefaultAcrylicParts();
     fitCanvas();
     rebuildStatusHud();
     updateNailSettingUi();
