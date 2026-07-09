@@ -1,0 +1,3959 @@
+﻿<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>パチンコ救急隊</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f7fbff;
+      --muted: #a9b7c6;
+      --panel: rgba(10, 18, 26, .82);
+      --line: rgba(255, 255, 255, .16);
+      --gold: #ffd36a;
+      --cyan: #66e3ff;
+      --rose: #ff6f9f;
+      --bg: #080d12;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at 18% 20%, rgba(102, 227, 255, .20), transparent 26rem),
+        linear-gradient(145deg, #0c1117 0%, #13171d 44%, #080d12 100%);
+      color: var(--ink);
+      font-family: "Segoe UI", "Noto Sans JP", system-ui, sans-serif;
+      letter-spacing: 0;
+      overflow-x: hidden;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1320px, calc(100vw - 16px));
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 16px 0;
+      display: grid;
+      grid-template-columns: minmax(360px, 840px) minmax(260px, 360px);
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .machine {
+      position: relative;
+      height: min(980px, calc(100vh - 20px));
+      min-height: 760px;
+      border: 1px solid rgba(255, 255, 255, .22);
+      border-radius: 8px;
+      background:
+        linear-gradient(160deg, rgba(255, 255, 255, .10), transparent 24%),
+        linear-gradient(22deg, rgba(255, 211, 106, .08), transparent 52%),
+        #121923;
+      box-shadow: 0 22px 70px rgba(0, 0, 0, .46), inset 0 0 0 5px rgba(255, 255, 255, .05);
+      overflow: hidden;
+    }
+
+    .machine::before,
+    .machine::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+      z-index: 3;
+      display: none;
+    }
+
+    .machine::before {
+      inset: 96px 12px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(210, 244, 255, .24);
+      background:
+        linear-gradient(112deg, rgba(255, 255, 255, .24), transparent 18%, transparent 68%, rgba(102, 227, 255, .10)),
+        linear-gradient(24deg, transparent 28%, rgba(255, 255, 255, .08) 29%, transparent 34%);
+      box-shadow:
+        inset 0 0 0 9px rgba(255, 255, 255, .035),
+        inset 0 0 38px rgba(180, 240, 255, .12),
+        0 0 32px rgba(102, 227, 255, .08);
+      mix-blend-mode: screen;
+    }
+
+    .machine::after {
+      left: 28px;
+      right: 28px;
+      top: 112px;
+      height: 22%;
+      border-radius: 999px 999px 24px 24px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .20), transparent 70%);
+      filter: blur(.2px);
+      opacity: .42;
+      mix-blend-mode: screen;
+    }
+
+    .marquee {
+      position: absolute;
+      inset: 12px 12px auto;
+      height: 72px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(6, 10, 15, .74);
+      z-index: 4;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(22px, 4.8vw, 42px);
+      line-height: 1;
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 0 0 18px rgba(102, 227, 255, .46), 0 2px 0 #000;
+    }
+
+    .status {
+      display: grid;
+      grid-template-columns: repeat(3, auto);
+      gap: 8px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .pill {
+      display: inline-grid;
+      grid-auto-flow: column;
+      gap: 6px;
+      align-items: center;
+      min-height: 30px;
+      padding: 5px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .06);
+    }
+
+    .pill strong {
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+
+    canvas {
+      position: absolute;
+      inset: 96px 12px 12px;
+      width: calc(100% - 24px);
+      height: calc(100% - 108px);
+      border-radius: 8px;
+      background:
+        radial-gradient(circle at center 42%, rgba(102, 227, 255, .10), transparent 34%),
+        linear-gradient(#162334, #0b1118 70%);
+      box-shadow:
+        inset 0 0 38px rgba(0, 0, 0, .64),
+        inset 0 0 0 12px rgba(255, 255, 255, .025),
+        inset 0 0 34px rgba(180, 240, 255, .09);
+      touch-action: none;
+    }
+
+    .launch-handle {
+      position: absolute;
+      right: 22px;
+      bottom: 22px;
+      z-index: 5;
+      width: clamp(112px, 17vw, 148px);
+      aspect-ratio: 1;
+      border: 1px solid rgba(255, 211, 106, .38);
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 36% 30%, rgba(255, 255, 255, .55), transparent 12%),
+        radial-gradient(circle at 50% 50%, #414955 0 22%, #202a36 23% 45%, #111820 46% 65%, #080c11 66%);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, .45), inset 0 0 0 7px rgba(255, 255, 255, .06), inset 0 0 24px rgba(255, 211, 106, .18);
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .launch-handle:active,
+    .launch-handle.active {
+      cursor: grabbing;
+      box-shadow: 0 0 34px rgba(255, 211, 106, .44), 0 12px 30px rgba(0, 0, 0, .45), inset 0 0 0 7px rgba(255, 255, 255, .08);
+    }
+
+    .handle-knob {
+      position: absolute;
+      inset: 13%;
+      border-radius: 50%;
+      background:
+        conic-gradient(from -80deg, rgba(255, 211, 106, .2), rgba(102, 227, 255, .22), rgba(255, 111, 159, .18), rgba(255, 211, 106, .2)),
+        radial-gradient(circle at 50% 50%, #242d39, #0a0f15 70%);
+      border: 1px solid rgba(255, 255, 255, .20);
+    }
+
+    .handle-needle {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 9%;
+      height: 39%;
+      border-radius: 999px;
+      transform: translate(-50%, -92%) rotate(0deg);
+      transform-origin: 50% 92%;
+      background: linear-gradient(#fff4c2, #ffb337);
+      box-shadow: 0 0 16px rgba(255, 211, 106, .55);
+    }
+
+    .handle-center {
+      position: absolute;
+      inset: 34%;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 28%, #ffffff, #ffd36a 32%, #955c14 100%);
+      border: 1px solid rgba(255, 255, 255, .35);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, .36);
+    }
+
+    .handle-power {
+      position: absolute;
+      left: 50%;
+      bottom: 10px;
+      transform: translateX(-50%);
+      min-width: 54px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, .58);
+      border: 1px solid rgba(255, 255, 255, .18);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      pointer-events: none;
+    }
+
+    .side {
+      height: min(900px, calc(100vh - 32px));
+      min-height: 720px;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    .screen,
+    .controls,
+    .history,
+    .meters {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 16px 42px rgba(0, 0, 0, .30);
+    }
+
+    .screen {
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .machine .screen {
+      position: absolute;
+      left: calc(12px + (100% - 24px) * 244 / 720);
+      top: calc(96px + (100% - 108px) * 318 / 900);
+      z-index: 4;
+      width: calc((100% - 24px) * 232 / 720);
+      height: calc((100% - 108px) * 174 / 900);
+      padding: 0;
+      transform: none;
+      cursor: zoom-in;
+      transition: width .22s ease, height .22s ease, left .22s ease, top .22s ease, transform .22s ease, box-shadow .22s ease;
+    }
+
+    .machine .screen.zoomed {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      z-index: 30;
+      width: min(860px, calc(100vw - 28px));
+      height: auto;
+      padding: 10px;
+      max-height: calc(100vh - 28px);
+      transform: translate(-50%, -50%);
+      cursor: zoom-out;
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, .62), 0 18px 80px rgba(102, 227, 255, .30);
+    }
+
+    .machine .screen .message {
+      display: none;
+    }
+
+    .machine .screen.zoomed .message {
+      min-height: 42px;
+      font-size: 18px;
+    }
+
+    .lcd {
+      min-height: 178px;
+      border-radius: 8px;
+      border: 1px solid rgba(102, 227, 255, .32);
+      background:
+        linear-gradient(135deg, rgba(102, 227, 255, .18), transparent 42%),
+        radial-gradient(circle at 74% 18%, rgba(255, 111, 159, .16), transparent 34%),
+        #08131d;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .machine .lcd {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .machine .screen.zoomed .lcd {
+      min-height: min(48vh, 430px);
+    }
+
+    .lcd::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(0deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .055) 1px, transparent 1px, transparent 5px);
+      pointer-events: none;
+      opacity: .45;
+    }
+
+    .reels {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 72px);
+      gap: 8px;
+    }
+
+    .reel {
+      height: 92px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, .24);
+      background: linear-gradient(#fdf7d8, #dfe8f2 48%, #f9fdff);
+      color: #111827;
+      display: grid;
+      place-items: center;
+      font-size: 42px;
+      font-weight: 900;
+      box-shadow: inset 0 -8px 18px rgba(0, 0, 0, .18);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .reel.spin {
+      animation: flick .16s steps(2) infinite;
+    }
+
+    @keyframes flick {
+      50% {
+        filter: hue-rotate(90deg) brightness(1.25);
+        transform: translateY(1px);
+      }
+    }
+
+    .message {
+      min-height: 44px;
+      color: var(--ink);
+      font-weight: 800;
+      text-align: center;
+      line-height: 1.35;
+    }
+
+    .controls {
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .handle-row {
+      display: grid;
+      grid-template-columns: 44px 1fr 44px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .handle-row {
+      display: none;
+    }
+
+    .icon-btn,
+    .main-btn {
+      border: 1px solid rgba(255, 255, 255, .20);
+      border-radius: 8px;
+      color: var(--ink);
+      background: linear-gradient(180deg, rgba(255, 255, 255, .13), rgba(255, 255, 255, .04));
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .icon-btn {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+    }
+
+    .main-btn {
+      min-height: 54px;
+      font-size: 18px;
+      font-weight: 900;
+      background: linear-gradient(180deg, #ffd36a, #d48219);
+      color: #1f1300;
+      box-shadow: 0 8px 22px rgba(255, 160, 51, .24);
+    }
+
+    .speed-btn {
+      min-height: 42px;
+      border: 1px solid rgba(255, 255, 255, .20);
+      border-radius: 8px;
+      color: var(--ink);
+      background: linear-gradient(180deg, rgba(102, 227, 255, .20), rgba(255, 255, 255, .05));
+      cursor: pointer;
+      font-weight: 900;
+    }
+
+    .speed-btn.active {
+      border-color: rgba(255, 211, 106, .70);
+      background: linear-gradient(180deg, #66e3ff, #287eb2);
+      color: #031019;
+      box-shadow: 0 0 24px rgba(102, 227, 255, .25);
+    }
+
+    .main-btn:active,
+    .icon-btn:active,
+    .speed-btn:active {
+      transform: translateY(1px);
+    }
+
+    .pin-tools {
+      display: grid;
+      gap: 8px;
+    }
+
+    #multiMove,
+    #addAcrylic,
+    #addCurve {
+      display: none;
+    }
+
+    .pin-tools-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .pin-tools select,
+    .pin-tools textarea {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, .20);
+      border-radius: 8px;
+      background: rgba(6, 10, 15, .72);
+      color: var(--ink);
+      padding: 8px;
+    }
+
+    .pin-tools textarea {
+      min-height: 96px;
+      resize: vertical;
+      font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+      font-size: 11px;
+    }
+
+    .range {
+      width: 100%;
+      accent-color: var(--gold);
+    }
+
+    .setting-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 40px;
+      padding: 8px 10px;
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .055);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .setting-row output {
+      color: var(--gold);
+      font-size: 14px;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .meters {
+      padding: 12px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .meter {
+      min-height: 58px;
+      padding: 9px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .055);
+      border: 1px solid rgba(255, 255, 255, .10);
+    }
+
+    .meter span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .meter strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 22px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .history {
+      padding: 12px;
+      overflow: hidden;
+    }
+
+    .history h2 {
+      margin: 0 0 8px;
+      font-size: 15px;
+    }
+
+    .log {
+      height: 100%;
+      min-height: 0;
+      max-height: none;
+      overflow: auto;
+      display: grid;
+      align-content: start;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .log p {
+      margin: 0;
+      padding: 7px 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, .045);
+    }
+
+    .hit {
+      color: var(--gold);
+    }
+
+    .fever {
+      animation: fever 1.1s ease-in-out infinite;
+    }
+
+    @keyframes fever {
+      50% {
+        box-shadow: 0 0 38px rgba(255, 211, 106, .62), inset 0 0 38px rgba(255, 111, 159, .34);
+      }
+    }
+
+    @media (max-width: 860px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .machine {
+        height: 680px;
+        min-height: 680px;
+      }
+
+      .side {
+        height: auto;
+        min-height: auto;
+        overflow: visible;
+      }
+
+      .machine .screen {
+        width: calc((100% - 24px) * 232 / 720);
+      }
+    }
+
+    @media (max-width: 560px) {
+      .app {
+        width: min(100vw - 14px, 1180px);
+        padding: 7px 0;
+        gap: 8px;
+      }
+
+      .machine {
+        height: 610px;
+        min-height: 610px;
+      }
+
+      .marquee {
+        height: 86px;
+        grid-template-columns: 1fr;
+        gap: 6px;
+        align-content: center;
+      }
+
+      .status {
+        grid-template-columns: repeat(3, 1fr);
+        font-size: 11px;
+      }
+
+      .pill {
+        min-width: 0;
+        justify-content: center;
+        padding-inline: 5px;
+      }
+
+      canvas {
+        inset-top: 104px;
+        height: calc(100% - 116px);
+      }
+
+      .launch-handle {
+        right: 16px;
+        bottom: 16px;
+        width: 108px;
+      }
+
+      .machine .screen {
+        top: calc(104px + (100% - 116px) * 318 / 900);
+        width: calc((100% - 24px) * 232 / 720);
+        padding: 0;
+      }
+
+      .machine .screen.zoomed {
+        width: calc(100vw - 18px);
+      }
+
+      .reels {
+        grid-template-columns: repeat(3, minmax(58px, 68px));
+      }
+
+      .reel {
+        height: 82px;
+        font-size: 36px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="machine" id="machine">
+      <div class="marquee">
+        <h1>パチンコ救急隊</h1>
+        <div class="status" aria-live="polite">
+          <span class="pill">持ち玉 <strong id="balls">250</strong></span>
+          <span class="pill">損益 <strong id="payout">0</strong></span>
+          <span class="pill">総回転 <strong id="spins">0</strong></span>
+        </div>
+      </div>
+      <canvas id="board" width="720" height="900" aria-label="パチンコ盤面"></canvas>
+      <section class="screen" id="centerScreen" role="button" tabindex="0" aria-expanded="false" title="液晶ズーム">
+        <div class="lcd" id="lcd">
+          <div class="reels" aria-live="polite">
+            <div class="reel" id="r0">7</div>
+            <div class="reel" id="r1">3</div>
+            <div class="reel" id="r2">5</div>
+          </div>
+        </div>
+        <div class="message" id="message">AUTOで打ち出し</div>
+      </section>
+      <div class="launch-handle" id="launchHandle" role="button" tabindex="0" aria-label="AUTO打ち出し" aria-pressed="false">
+        <div class="handle-knob"></div>
+        <div class="handle-needle" id="handleNeedle"></div>
+        <div class="handle-center"></div>
+        <div class="handle-power" id="handlePower">AUTO</div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <section class="controls">
+        <div class="handle-row">
+          <button class="icon-btn" id="down" title="弱い">-</button>
+          <input class="range" id="power" type="range" min="32" max="92" value="58" aria-label="打ち出し強さ">
+          <button class="icon-btn" id="up" title="強い">+</button>
+        </div>
+        <label class="setting-row">
+          <span>釘設定</span>
+          <input class="range" id="nailSetting" type="range" min="1" max="6" value="3" step="1" aria-label="釘設定">
+          <output id="nailSettingValue">3 / 20回</output>
+        </label>
+        <button class="main-btn" id="fire">AUTO START</button>
+        <button class="speed-btn" id="speedMode" aria-pressed="false">SPEED x5 OFF</button>
+        <div class="pin-tools">
+          <button class="speed-btn" id="pinEdit" aria-pressed="false">PIN EDIT OFF</button>
+          <select id="pinKind" aria-label="pin kind">
+            <option value="normal">normal</option>
+            <option value="road">road</option>
+            <option value="spill">spill</option>
+            <option value="heso">heso</option>
+            <option value="attacker">attacker</option>
+            <option value="hot">hot</option>
+            <option value="warp">warp</option>
+          </select>
+          <output id="pinInfo" class="pill">PIN -</output>
+          <button class="speed-btn" id="multiMove" aria-pressed="false">MULTI MOVE OFF</button>
+          <select id="hitTarget" aria-label="hit area target">
+            <option value="lcd">液晶</option>
+            <option value="pocket:0">START</option>
+            <option value="pocket:1">アタッカー</option>
+            <option value="pocket:2">OUT</option>
+            <option value="rightDevice">右役物</option>
+            <option value="windmill">風車</option>
+            <option value="push">PUSH</option>
+            <option value="handle">ハンドル</option>
+          </select>
+          <label class="setting-row">
+            <span>X</span>
+            <input class="range" id="hitX" type="range" min="0" max="720" value="360" step="1" aria-label="hit x">
+            <output id="hitXValue">360</output>
+          </label>
+          <label class="setting-row">
+            <span>Y</span>
+            <input class="range" id="hitY" type="range" min="0" max="900" value="450" step="1" aria-label="hit y">
+            <output id="hitYValue">450</output>
+          </label>
+          <label class="setting-row">
+            <span>R</span>
+            <input class="range" id="hitR" type="range" min="4" max="140" value="30" step="1" aria-label="hit radius">
+            <output id="hitRValue">30</output>
+          </label>
+          <label class="setting-row">
+            <span>W</span>
+            <input class="range" id="hitW" type="range" min="20" max="700" value="120" step="1" aria-label="hit width">
+            <output id="hitWValue">120</output>
+          </label>
+          <label class="setting-row">
+            <span>H</span>
+            <input class="range" id="hitH" type="range" min="20" max="520" value="120" step="1" aria-label="hit height">
+            <output id="hitHValue">120</output>
+          </label>
+          <div class="pin-tools-row">
+            <button class="speed-btn" id="pinCopy">COPY JSON</button>
+            <button class="speed-btn" id="pinApply">APPLY JSON</button>
+          </div>
+          <div class="pin-tools-row">
+            <button class="speed-btn" id="saveDefault">SAVE DEFAULT</button>
+            <button class="speed-btn" id="clearDefault">CLEAR DEFAULT</button>
+          </div>
+          <div class="pin-tools-row">
+            <button class="speed-btn" id="addAcrylic">ADD ACRYLIC</button>
+            <button class="speed-btn" id="addCurve">ADD CURVE</button>
+          </div>
+          <textarea id="pinJson" spellcheck="false" placeholder="PIN JSON"></textarea>
+        </div>
+      </section>
+
+      <section class="meters">
+        <div class="meter"><span>入賞率</span><strong id="rate">0%</strong></div>
+        <div class="meter"><span>大当たり</span><strong id="jackpots">0</strong></div>
+        <div class="meter"><span>現在状態</span><strong id="mode">通常</strong></div>
+        <div class="meter"><span>ラウンド</span><strong id="rounds">0</strong></div>
+      </section>
+
+      <section class="history">
+        <h2>履歴</h2>
+        <div class="log" id="log"></div>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("board");
+    const ctx = canvas.getContext("2d");
+    const machine = document.getElementById("machine");
+    const els = {
+      balls: document.getElementById("balls"),
+      payout: document.getElementById("payout"),
+      holds: document.getElementById("holds"),
+      spins: document.getElementById("spins"),
+      sinceJackpotSpins: document.getElementById("sinceJackpotSpins"),
+      rate: document.getElementById("rate"),
+      jackpots: document.getElementById("jackpots"),
+      mode: document.getElementById("mode"),
+      rounds: document.getElementById("rounds"),
+      message: document.getElementById("message"),
+      power: document.getElementById("power"),
+      nailSetting: document.getElementById("nailSetting"),
+      nailSettingValue: document.getElementById("nailSettingValue"),
+      fire: document.getElementById("fire"),
+      speedMode: document.getElementById("speedMode"),
+      pinEdit: document.getElementById("pinEdit"),
+      multiMove: document.getElementById("multiMove"),
+      pinKind: document.getElementById("pinKind"),
+      pinInfo: document.getElementById("pinInfo"),
+      pinCopy: document.getElementById("pinCopy"),
+      pinApply: document.getElementById("pinApply"),
+      saveDefault: document.getElementById("saveDefault"),
+      clearDefault: document.getElementById("clearDefault"),
+      addAcrylic: document.getElementById("addAcrylic"),
+      addCurve: document.getElementById("addCurve"),
+      pinJson: document.getElementById("pinJson"),
+      hitTarget: document.getElementById("hitTarget"),
+      hitX: document.getElementById("hitX"),
+      hitY: document.getElementById("hitY"),
+      hitR: document.getElementById("hitR"),
+      hitW: document.getElementById("hitW"),
+      hitH: document.getElementById("hitH"),
+      hitXValue: document.getElementById("hitXValue"),
+      hitYValue: document.getElementById("hitYValue"),
+      hitRValue: document.getElementById("hitRValue"),
+      hitWValue: document.getElementById("hitWValue"),
+      hitHValue: document.getElementById("hitHValue"),
+      centerScreen: document.getElementById("centerScreen"),
+      launchHandle: document.getElementById("launchHandle"),
+      handleNeedle: document.getElementById("handleNeedle"),
+      handlePower: document.getElementById("handlePower"),
+      lcd: document.getElementById("lcd"),
+      log: document.getElementById("log"),
+      reels: [document.getElementById("r0"), document.getElementById("r1"), document.getElementById("r2")]
+    };
+
+    const state = {
+      balance: 0,
+      balls: Infinity,
+      payout: 0,
+      fired: 0,
+      wins: 0,
+      spins: 0,
+      sinceJackpotSpins: 0,
+      jackpots: 0,
+      mode: "通常",
+      rounds: 0,
+      feverUntil: 0,
+      autoTimer: null,
+      autoFire: false,
+      holdPause: false,
+      speedMode: false,
+      rightDeviceOpen: false,
+      nailSetting: 3,
+      nailVariance: {},
+      startMeter: 0,
+      spillFlip: 1,
+      pendingStarts: 0,
+      bonusActive: false,
+      rushMode: "none",
+      rushStreak: 0,
+      stRemaining: 0,
+      pendingRush: "none",
+      pinEditor: false,
+      selectedPin: -1,
+      selectedPins: new Set(),
+      selectedHits: new Set(),
+      multiMove: false,
+      draggingPin: false,
+      dragMode: "none",
+      dragStart: null,
+      dragOrigins: null,
+      acrylicCorner: null,
+      selectionRect: null,
+      bonusTimer: null
+    };
+    function configureHudLabels() {
+      const status = document.querySelector(".status");
+      if (els.balls) els.balls.closest(".pill").firstChild.textContent = "損益 ";
+      if (els.payout) els.payout.closest(".pill").firstChild.textContent = "出玉 ";
+      if (!els.holds && status) {
+        const holdPill = document.createElement("span");
+        holdPill.className = "pill";
+        holdPill.innerHTML = '保留 <strong id="holds">0/4</strong>';
+        status.appendChild(holdPill);
+        els.holds = holdPill.querySelector("strong");
+      }
+      if (els.spins) {
+        els.spins.closest(".pill").innerHTML = '総回転 <strong id="spins">0</strong>';
+        els.spins = document.getElementById("spins");
+      }
+      if (!els.sinceJackpotSpins && status) {
+        const sincePill = document.createElement("span");
+        sincePill.className = "pill";
+        sincePill.innerHTML = '大当たり後 <strong id="sinceJackpotSpins">0</strong>';
+        status.appendChild(sincePill);
+        els.sinceJackpotSpins = sincePill.querySelector("strong");
+      }
+    }
+
+    function normalizeHudLabels() {
+      const status = document.querySelector(".status");
+      if (els.balls) {
+        els.balls.closest(".pill").innerHTML = '損益 <strong id="balls">0</strong>';
+        els.balls = document.getElementById("balls");
+      }
+      if (els.payout) {
+        els.payout.closest(".pill").innerHTML = '出玉 <strong id="payout">0</strong>';
+        els.payout = document.getElementById("payout");
+      }
+      if (!els.holds && status) {
+        const holdPill = document.createElement("span");
+        holdPill.className = "pill";
+        holdPill.innerHTML = '保留 <strong id="holds">0/4</strong>';
+        status.appendChild(holdPill);
+        els.holds = holdPill.querySelector("strong");
+      }
+    }
+
+    function rebuildStatusHud() {
+      const status = document.querySelector(".status");
+      if (!status) return;
+      status.innerHTML = `
+        <span class="pill">損益 <strong id="balls">0</strong></span>
+        <span class="pill">出玉 <strong id="payout">0</strong></span>
+        <span class="pill">総回転 <strong id="spins">0</strong></span>
+        <span class="pill">大当たり後 <strong id="sinceJackpotSpins">0</strong></span>
+        <span class="pill">保留 <strong id="holds">0/4</strong></span>
+      `;
+      els.balls = document.getElementById("balls");
+      els.payout = document.getElementById("payout");
+      els.spins = document.getElementById("spins");
+      els.sinceJackpotSpins = document.getElementById("sinceJackpotSpins");
+      els.holds = document.getElementById("holds");
+    }
+
+    const maxHolds = 4;
+    const nailSettingTable = {
+      1: { spinsPer250: 21.0, startPerBall: 21.0 / 250 },
+      2: { spinsPer250: 23.1, startPerBall: 23.1 / 250 },
+      3: { spinsPer250: 25.3, startPerBall: 25.3 / 250 },
+      4: { spinsPer250: 27.4, startPerBall: 27.4 / 250 },
+      5: { spinsPer250: 30.5, startPerBall: 30.5 / 250 },
+      6: { spinsPer250: 34.4, startPerBall: 34.4 / 250 }
+    };
+    const startRouteCompensation = 1;
+    const balls = [];
+    const particles = [];
+    const pins = [];
+    const fixedPinRadius = 3;
+    const physics = {
+      ballMassG: 5,
+      gravity: .0056,
+      airDrag: .00062,
+      rollingDrag: .00135,
+      maxSpeed: 2.05,
+      nailRestitution: .78,
+      wallRestitution: .61,
+      lcdRestitution: .56,
+      ballRestitution: .45,
+      randomNailScatter: .18
+    };
+    const pockets = [
+      { x: 360, y: 776, w: 76, h: 30, r: 12, shape: "bowl", type: "start", label: "START", color: "#66e3ff" },
+      { x: 632, y: 568, r: 38, type: "attacker", label: "V", color: "#ffd36a" },
+      { x: 360, y: 900, r: 72, shape: "semicircle", type: "out", label: "", color: "#8895a4" }
+    ];
+    const hitAreas = {
+      lcd: { x: 118, y: 166, w: 484, h: 363 },
+      rightDevice: { x: 642, y: 568, w: 72, h: 136 },
+      windmill: { x: 76, y: 512, r: 24 },
+      launch: { x: 54, y: 74, r: 18 },
+      push: { x: 82, y: 824, r: 49 },
+      handle: { x: 650, y: 838, r: 76 }
+    };
+    const acrylicParts = [];
+    const layoutStorageKey = "pachinkoPrototypeDefaultLayoutV1";
+
+    const symbols = ["1", "2", "3", "5", "7", "救", "急"];
+    const ballImage = new Image();
+    ballImage.src = "pachinko_ball.png";
+    let ballImageReady = false;
+    ballImage.addEventListener("load", () => {
+      ballImageReady = true;
+    });
+    const nailImage = new Image();
+    nailImage.src = "pachinko_brass_nail.png";
+    let nailImageReady = false;
+    nailImage.addEventListener("load", () => {
+      nailImageReady = true;
+    });
+    let lastTime = performance.now();
+    let spinLock = false;
+
+    function setupPins() {
+      pins.length = 0;
+      const add = (x, y, kind = "normal", r = 3.1) => pins.push({ x, y, r, kind });
+      const line = (x1, y1, x2, y2, count, kind = "normal", r = 3.1) => {
+        for (let i = 0; i < count; i++) {
+          const t = count === 1 ? 0 : i / (count - 1);
+          add(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t, kind, r);
+        }
+      };
+      const curve = (points, count, kind = "normal", r = 3.1) => {
+        for (let i = 0; i < count; i++) {
+          const t = count === 1 ? 0 : i / (count - 1);
+          const seg = Math.min(points.length - 2, Math.floor(t * (points.length - 1)));
+          const local = t * (points.length - 1) - seg;
+          const a = points[seg];
+          const b = points[seg + 1];
+          add(a.x + (b.x - a.x) * local, a.y + (b.y - a.y) * local, kind, r);
+        }
+      };
+
+      // Real-machine inspired routes: left launch rail, warp entrance, windmill, yorikugi, doukugi, heso, and right-shot path.
+      curve([{ x: 48, y: 118 }, { x: 48, y: 214 }, { x: 54, y: 330 }, { x: 64, y: 456 }], 12, "warp", 2.7);
+      curve([{ x: 84, y: 132 }, { x: 82, y: 250 }, { x: 88, y: 374 }, { x: 112, y: 526 }], 12, "normal", 2.7);
+      curve([{ x: 118, y: 116 }, { x: 180, y: 130 }, { x: 246, y: 118 }, { x: 320, y: 144 }], 9, "spill", 2.6);
+      curve([{ x: 600, y: 116 }, { x: 538, y: 130 }, { x: 474, y: 118 }, { x: 400, y: 144 }], 9, "spill", 2.6);
+      line(236, 154, 124, 214, 6, "normal", 2.6);
+      line(484, 154, 596, 214, 6, "normal", 2.6);
+      line(104, 278, 58, 388, 7, "warp", 2.65);
+      line(142, 292, 92, 410, 7, "normal", 2.65);
+      line(116, 436, 60, 500, 5, "spill", 2.7);
+      line(132, 462, 92, 536, 5, "road", 2.75);
+      line(58, 548, 136, 552, 5, "road", 2.75);
+      line(112, 566, 206, 590, 6, "road", 2.75);
+      line(180, 600, 274, 632, 6, "road", 2.8);
+      line(254, 646, 336, 684, 6, "road", 2.8);
+      line(318, 690, 360, 718, 4, "road", 2.85);
+      line(96, 642, 54, 732, 5, "spill", 2.7);
+      line(156, 644, 108, 748, 6, "spill", 2.7);
+      line(224, 676, 176, 792, 6, "spill", 2.7);
+
+      line(282, 706, 340, 734, 5, "heso", 2.85);
+      line(438, 706, 380, 734, 5, "heso", 2.85);
+      add(326, 748, "heso", 3.05);
+      add(394, 748, "heso", 3.05);
+      add(346, 766, "heso", 2.95);
+      add(374, 766, "heso", 2.95);
+      line(304, 792, 336, 824, 4, "spill", 2.8);
+      line(416, 792, 384, 824, 4, "spill", 2.8);
+      add(342, 816, "spill", 2.8);
+      add(378, 816, "spill", 2.8);
+      line(232, 792, 304, 852, 5, "spill", 2.75);
+      line(488, 792, 416, 852, 5, "spill", 2.75);
+      line(236, 832, 320, 862, 6, "spill", 2.65);
+      line(484, 832, 400, 862, 6, "spill", 2.65);
+
+      curve([{ x: 626, y: 86 }, { x: 668, y: 176 }, { x: 682, y: 344 }, { x: 658, y: 512 }], 20, "hot", 2.8);
+      line(626, 518, 682, 590, 6, "hot", 2.8);
+      line(588, 526, 674, 592, 7, "attacker", 2.9);
+      line(638, 622, 512, 704, 9, "attacker", 2.9);
+      line(456, 742, 512, 704, 6, "attacker", 2.8);
+      line(556, 704, 640, 748, 7, "attacker", 2.8);for (let row = 0; row < 8; row++) {
+        const y = 138 + row * 66;
+        const count = row % 2 ? 7 : 8;
+        const offset = row % 2 ? 40 : 18;
+        for (let col = 0; col < count; col++) {
+          const x = offset + col * 96;
+          const nearLcd = x > 100 && x < 620 && y > 132 && y < 548;
+          const nearStart = Math.hypot(x - 360, y - 790) < 104;
+          const leftRoute = x < 230 && y > 420 && y < 710;
+          const roadRoute = x > 190 && x < 350 && y > 600 && y < 760;
+          const hesoRoute = x > 250 && x < 470 && y > 690 && y < 850;
+          const onDevice = x > 590 && y > 490 && y < 650;
+          if (!nearLcd && !nearStart && !leftRoute && !roadRoute && !hesoRoute && !onDevice) add(x, y, "normal", 2.6);
+        }
+      }
+      pins.push(
+        { x: 64, y: 574, r: 2.9, kind: "road" },
+        { x: 114, y: 574, r: 2.9, kind: "road" },
+        { x: 156, y: 616, r: 2.8, kind: "road" },
+        { x: 216, y: 638, r: 2.8, kind: "road" },
+        { x: 270, y: 664, r: 2.8, kind: "road" },
+        { x: 316, y: 692, r: 2.8, kind: "road" },
+        { x: 330, y: 716, r: 2.8, kind: "heso" },
+        { x: 390, y: 716, r: 2.8, kind: "heso" },
+        { x: 318, y: 748, r: 2.8, kind: "spill" },
+        { x: 402, y: 748, r: 2.8, kind: "spill" },
+        { x: 504, y: 692, r: 2.9, kind: "attacker" },
+        { x: 590, y: 692, r: 2.9, kind: "attacker" },
+        { x: 486, y: 668, r: 3.2, kind: "attacker" }
+      );
+    }
+
+    function fitCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.max(320, Math.floor(rect.width * dpr));
+      canvas.height = Math.max(480, Math.floor(rect.height * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function sx(x) {
+      return x / 720 * canvas.clientWidth;
+    }
+
+    function sy(y) {
+      return y / 900 * canvas.clientHeight;
+    }
+
+    function lcdBlock() {
+      const lcd = hitAreas.lcd;
+      return {
+        left: sx(lcd.x),
+        top: sy(lcd.y),
+        right: sx(lcd.x + lcd.w),
+        bottom: sy(lcd.y + lcd.h)
+      };
+    }
+
+    function isJackpotActive() {
+      return state.bonusActive;
+    }
+
+    function autoShotPower(rightShot = isJackpotActive()) {
+      return rightShot ? 88 : 62;
+    }
+
+    function nailVarianceFor(setting) {
+      if (state.nailVariance[setting] == null) {
+        state.nailVariance[setting] = Math.round((Math.random() * 4 - 2) * 10) / 10;
+      }
+      return state.nailVariance[setting];
+    }
+
+    function currentNailSetting() {
+      const base = nailSettingTable[state.nailSetting] || nailSettingTable[3];
+      const spinsPer250 = Math.max(1, Math.round((base.spinsPer250 + nailVarianceFor(state.nailSetting)) * 10) / 10);
+      return {
+        ...base,
+        baseSpinsPer250: base.spinsPer250,
+        variance: Math.round((spinsPer250 - base.spinsPer250) * 10) / 10,
+        spinsPer250,
+        startPerBall: spinsPer250 / 250
+      };
+    }
+
+    function updateNailSettingUi() {
+      state.nailSetting = Math.max(1, Math.min(6, Number(els.nailSetting?.value || state.nailSetting || 3)));
+      const setting = currentNailSetting();
+      const sign = setting.variance >= 0 ? "+" : "";
+      if (els.nailSettingValue) els.nailSettingValue.textContent = `${state.nailSetting} / ${setting.spinsPer250}蝗・(${sign}${setting.variance})`;
+    }
+
+    function spawnBall() {
+      if (!isJackpotActive() && state.pendingStarts >= maxHolds) {
+        pauseAutoForHold();
+        return;
+      }
+      if (state.balls <= 0) {
+        message("持ち玉がありません。リセットで再試行。");
+        return;
+      }
+      state.balls--;
+      state.fired++;
+      state.balance--;
+      const rightShot = isJackpotActive();
+      const power = autoShotPower(rightShot);
+      if (!rightShot) state.startMeter += currentNailSetting().startPerBall * startRouteCompensation;
+      const startEligible = !rightShot && state.startMeter >= 1;
+      if (startEligible) state.startMeter -= 1;
+      const launch = hitAreas.launch;
+      balls.push({
+        x: sx(launch.x),
+        y: sy(launch.y),
+        vx: rightShot ? power * .010 : power * .0034,
+        vy: rightShot ? -power * .0035 : power * .0048,
+        r: Math.max(5, canvas.clientWidth * .0105),
+        massG: physics.ballMassG,
+        live: true,
+        glow: 1,
+        age: 0,
+        angle: Math.random() * Math.PI * 2,
+        trail: [],
+        rightShot,
+        startEligible
+      });
+      updateHud();
+    }
+
+    function burst(x, y, color, count = 18) {
+      for (let i = 0; i < count; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const s = 1.2 + Math.random() * 3;
+        particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 34 + Math.random() * 20, color });
+      }
+    }
+
+    function update(dt) {
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      state.rightDeviceOpen = isJackpotActive() && Math.sin(performance.now() / 180) > -.92;
+      const scaledPins = pins.map(p => ({ x: sx(p.x), y: sy(p.y), r: Math.max(1.45, fixedPinRadius / 720 * w) }));
+      const scaledPockets = pockets.map(p => ({
+        ...p,
+        x: sx(p.x),
+        y: sy(p.y),
+        r: (p.r || 0) / 720 * w,
+        w: (p.w || 0) / 720 * w,
+        h: (p.h || 0) / 900 * h
+      }));
+
+      balls.forEach(ball => {
+        ball.age = (ball.age || 0) + dt;
+        ball.prevX = ball.x;
+        ball.prevY = ball.y;
+        ball.trail.push({ x: ball.x, y: ball.y });
+        if (ball.trail.length > 6) ball.trail.shift();
+        guideBall(ball, dt);
+        ball.vy += physics.gravity * dt;
+        const drag = Math.max(0, 1 - (physics.airDrag + physics.rollingDrag) * dt);
+        ball.vx *= drag;
+        ball.vy *= Math.max(0, 1 - physics.airDrag * dt);
+        const speed = Math.hypot(ball.vx, ball.vy);
+        if (speed > physics.maxSpeed) {
+          const cap = physics.maxSpeed / speed;
+          ball.vx *= cap;
+          ball.vy *= cap;
+        }
+        ball.x += ball.vx * dt;
+        ball.y += ball.vy * dt;
+        ball.angle += Math.hypot(ball.vx, ball.vy) * dt / Math.max(1, ball.r) * .16;
+        ball.glow *= .992;
+        collideWithPlayfieldCircle(ball);
+        collideWithLcdFrame(ball);
+        collideWithAcrylicParts(ball);
+        collideWithWindmill(ball);
+        collideWithPushButton(ball);
+
+        if (ball.x < ball.r + 12) {
+          ball.x = ball.r + 12;
+          ball.vx = Math.abs(ball.vx) * physics.wallRestitution;
+        }
+        if (ball.x > w - ball.r - 12) {
+          ball.x = w - ball.r - 12;
+          ball.vx = -Math.abs(ball.vx) * physics.wallRestitution;
+        }
+        if (ball.y < ball.r + 12) {
+          ball.y = ball.r + 12;
+          ball.vy = Math.abs(ball.vy) * physics.wallRestitution;
+        }
+
+        scaledPins.forEach(pin => {
+          if (!ball.rightShot && ball.age < 420 && ball.y < sy(180) && pin.x < sx(128)) return;
+          const dx = ball.x - pin.x;
+          const dy = ball.y - pin.y;
+          const dist = Math.hypot(dx, dy);
+          const min = ball.r + pin.r;
+          if (dist < min && dist > .01) {
+            const nx = dx / dist;
+            const ny = dy / dist;
+            const overlap = min - dist;
+            ball.x += nx * overlap;
+            ball.y += ny * overlap;
+            const dot = ball.vx * nx + ball.vy * ny;
+            if (dot < 0) {
+              ball.vx -= (1 + physics.nailRestitution) * dot * nx;
+              ball.vy -= (1 + physics.nailRestitution) * dot * ny;
+            }
+            const tangentX = -ny;
+            const tangentY = nx;
+            const tangent = ball.vx * tangentX + ball.vy * tangentY;
+            ball.vx -= tangentX * tangent * .035;
+            ball.vy -= tangentY * tangent * .035;
+            ball.vx += (Math.random() - .5) * physics.randomNailScatter;
+            ball.vy += (Math.random() - .5) * physics.randomNailScatter * .55;
+            ball.glow = 1;
+          }
+        });
+
+        if (!ball.rightShot && ball.x > sx(455) && ball.y < sy(760)) {
+          const routeX = ball.y < sy(560) ? sx(142) : sx(318);
+          ball.vx += (routeX - ball.x) * .00018 * dt;
+          if (ball.vx > 1.1) ball.vx *= .72;
+        }
+        if (ball.rightShot && ball.x < sx(520) && ball.y < sy(560)) {
+          ball.vx += .010 * dt;
+        }
+
+        for (const pocket of scaledPockets) {
+          if (pocket.type === "attacker" && !state.rightDeviceOpen) continue;
+          const hit = pocketHit(ball, pocket);
+          if (hit && ball.live) {
+            if (pocket.type === "start" && ball.rightShot) continue;
+            if (pocket.type === "start" && hit === "out") {
+              ball.live = false;
+              handlePocket({ ...pocket, type: "out", color: "#8895a4" }, ball.x, ball.y);
+              break;
+            }
+            if (pocket.type === "start" && !ball.startEligible) {
+              if (!ball.hesoSpillSide) {
+                state.spillFlip *= -1;
+                ball.hesoSpillSide = state.spillFlip;
+              }
+              ball.vx += ball.hesoSpillSide * .18;
+              ball.vy = Math.max(ball.vy, .36);
+              ball.x += ball.hesoSpillSide * ball.r * .45;
+              ball.y += ball.r * .20;
+              continue;
+            }
+            ball.live = false;
+            handlePocket(pocket, ball.x, ball.y);
+            break;
+          }
+        }
+
+        if (ball.y > h + 60) ball.live = false;
+      });
+
+      collideBalls(dt);
+
+      for (let i = balls.length - 1; i >= 0; i--) {
+        if (!balls[i].live) balls.splice(i, 1);
+      }
+
+      particles.forEach(p => {
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vy += .02 * dt;
+        p.life -= dt;
+      });
+      for (let i = particles.length - 1; i >= 0; i--) {
+        if (particles[i].life <= 0) particles.splice(i, 1);
+      }
+
+      if (!state.bonusActive && state.rightDeviceOpen) state.rightDeviceOpen = false;
+    }
+
+    function pocketHit(ball, pocket) {
+      if (pocket.shape === "bowl" || pocket.type === "start") {
+        const topWidth = pocket.w;
+        const bottomWidth = pocket.w * .56;
+        const top = pocket.y;
+        const bottom = pocket.y + pocket.h;
+        const topLeft = pocket.x - topWidth / 2;
+        const topRight = pocket.x + topWidth / 2;
+        const bottomLeft = pocket.x - bottomWidth / 2;
+        const bottomRight = pocket.x + bottomWidth / 2;
+        const withinTop = ball.x >= topLeft - ball.r * .65 && ball.x <= topRight + ball.r * .65;
+        const withinBottom = ball.x >= bottomLeft - ball.r * .65 && ball.x <= bottomRight + ball.r * .65;
+        const crossedTop = (ball.prevY + ball.r) <= top && (ball.y + ball.r) >= top;
+        const topEntry = ball.vy > 0 && withinTop && (crossedTop || (ball.y >= top - ball.r && ball.y <= top + pocket.h * .45));
+        const bottomCatch = withinBottom && ball.y + ball.r >= bottom - ball.r * .25;
+        const lowerBackflow = ball.vy < 0 && withinBottom && ball.y - ball.r <= bottom && ball.y > top + pocket.h * .45;
+        if (bottomCatch || lowerBackflow) return "out";
+        if (topEntry) return "start";
+        return false;
+      }
+      if (pocket.shape === "semicircle" || pocket.type === "out") {
+        const dx = ball.x - pocket.x;
+        const dy = ball.y - pocket.y;
+        const dist = Math.hypot(dx, dy);
+        return ball.vy > 0 && ball.y + ball.r >= pocket.y - pocket.r && dist < pocket.r + ball.r * .65;
+      }
+      return Math.hypot(ball.x - pocket.x, ball.y - pocket.y) < pocket.r;
+    }
+
+    function collideBalls(dt) {
+      for (let i = 0; i < balls.length; i++) {
+        const a = balls[i];
+        if (!a.live) continue;
+        for (let j = i + 1; j < balls.length; j++) {
+          const b = balls[j];
+          if (!b.live) continue;
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          let dist = Math.hypot(dx, dy);
+          const min = a.r + b.r + 1;
+          if (dist >= min) continue;
+          if (dist <= .01) {
+            dist = .01;
+          }
+          const nx = dx / dist;
+          const ny = dy / dist;
+          const overlap = min - dist;
+          const push = overlap * .52;
+          a.x -= nx * push;
+          a.y -= ny * push;
+          b.x += nx * push;
+          b.y += ny * push;
+
+          const rvx = b.vx - a.vx;
+          const rvy = b.vy - a.vy;
+          const closing = rvx * nx + rvy * ny;
+          if (closing < 0) {
+            const impulse = -(1 + physics.ballRestitution) * closing / 2;
+            a.vx -= impulse * nx;
+            a.vy -= impulse * ny;
+            b.vx += impulse * nx;
+            b.vy += impulse * ny;
+          }
+          const tangentX = -ny;
+          const tangentY = nx;
+          const shove = .0018 * dt;
+          a.vx -= tangentX * shove;
+          b.vx += tangentX * shove;
+          a.vy -= tangentY * shove * .45;
+          b.vy += tangentY * shove * .45;
+          a.glow = Math.max(a.glow, .68);
+          b.glow = Math.max(b.glow, .68);
+        }
+      }
+    }
+
+    function playfieldShape() {
+      return {
+        x: sx(360),
+        y: sy(500),
+        rx: sx(432),
+        ry: sy(444),
+        topY: sy(42)
+      };
+    }
+
+    function collideWithPlayfieldCircle(ball) {
+      const field = playfieldShape();
+      const flatTopHalf = field.rx * .93;
+      if (ball.y < field.topY + ball.r && Math.abs(ball.x - field.x) < flatTopHalf) {
+        ball.y = field.topY + ball.r;
+        ball.vy = Math.abs(ball.vy) * physics.wallRestitution;
+        ball.glow = 1;
+        return;
+      }
+
+      const dx = ball.x - field.x;
+      const dy = ball.y - field.y;
+      const rx = field.rx - ball.r - 2;
+      const ry = field.ry - ball.r - 2;
+      const normalized = Math.hypot(dx / rx, dy / ry);
+      if (normalized <= 1 || normalized <= .01) return;
+      ball.x = field.x + dx / normalized;
+      ball.y = field.y + dy / normalized;
+      const nxRaw = dx / (rx * rx);
+      const nyRaw = dy / (ry * ry);
+      const nLen = Math.max(.01, Math.hypot(nxRaw, nyRaw));
+      const nx = nxRaw / nLen;
+      const ny = nyRaw / nLen;
+      const dot = ball.vx * nx + ball.vy * ny;
+      if (dot > 0) {
+        ball.vx -= (1 + physics.wallRestitution) * dot * nx;
+        ball.vy -= (1 + physics.wallRestitution) * dot * ny;
+      }
+      if (ball.y > sy(705)) {
+        ball.vx += (sx(360) - ball.x) * .006;
+        ball.vy = Math.max(ball.vy, .45);
+      }
+      ball.glow = 1;
+    }
+
+    function collideWithLcdFrame(ball) {
+      const block = lcdBlock();
+      const pad = ball.r + 4;
+      if (
+        ball.x < block.left - pad ||
+        ball.x > block.right + pad ||
+        ball.y < block.top - pad ||
+        ball.y > block.bottom + pad
+      ) return;
+
+      const insideX = ball.x > block.left && ball.x < block.right;
+      const insideY = ball.y > block.top && ball.y < block.bottom;
+      if (!insideX || !insideY) return;
+
+      const exits = [
+        { side: "left", d: Math.abs(ball.x - block.left) },
+        { side: "right", d: Math.abs(block.right - ball.x) },
+        { side: "top", d: Math.abs(ball.y - block.top) },
+        { side: "bottom", d: Math.abs(block.bottom - ball.y) }
+      ].sort((a, b) => a.d - b.d);
+
+      if (exits[0].side === "left") {
+        ball.x = block.left - pad;
+        ball.vx = -Math.abs(ball.vx) * physics.lcdRestitution - .12;
+      } else if (exits[0].side === "right") {
+        ball.x = block.right + pad;
+        ball.vx = Math.abs(ball.vx) * physics.lcdRestitution + .12;
+      } else if (exits[0].side === "top") {
+        ball.y = block.top - pad;
+        ball.vy = -Math.abs(ball.vy) * physics.lcdRestitution;
+        const center = (block.left + block.right) / 2;
+        const side = ball.x < center ? -1 : 1;
+        ball.vx += side * .18 + (ball.x - center) * .0008;
+      } else {
+        ball.y = block.bottom + pad;
+        ball.vy = Math.abs(ball.vy) * physics.lcdRestitution + .10;
+      }
+      ball.vx += (Math.random() - .5) * .08;
+      ball.vy += (Math.random() - .5) * .05;
+      ball.glow = 1;
+    }
+
+    function pushButtonShape() {
+      const button = hitAreas.push;
+      return {
+        x: sx(button.x),
+        y: sy(button.y),
+        r: button.r / 720 * canvas.clientWidth
+      };
+    }
+
+    function collideWithPushButton(ball) {
+      if (ball.rightShot) return;
+      const button = pushButtonShape();
+      const dx = ball.x - button.x;
+      const dy = ball.y - button.y;
+      const dist = Math.hypot(dx, dy);
+      const min = button.r + ball.r + 2;
+      if (dist >= min || dist <= .01) return;
+      const nx = dx / dist;
+      const ny = dy / dist;
+      const overlap = min - dist;
+      ball.x += nx * overlap;
+      ball.y += ny * overlap;
+      const dot = ball.vx * nx + ball.vy * ny;
+      if (dot < 0) {
+        ball.vx -= (1 + physics.wallRestitution * .7) * dot * nx;
+        ball.vy -= (1 + physics.wallRestitution * .7) * dot * ny;
+      }
+      ball.vx += (sx(360) - ball.x) * .0025;
+      ball.vy = Math.max(ball.vy, .32);
+      ball.glow = 1;
+    }
+
+    function collideWithWindmill(ball) {
+      const mill = hitAreas.windmill;
+      const x = sx(mill.x);
+      const y = sy(mill.y);
+      const r = mill.r / 720 * canvas.clientWidth;
+      const dx = ball.x - x;
+      const dy = ball.y - y;
+      const dist = Math.hypot(dx, dy);
+      const min = r + ball.r + 1;
+      if (dist >= min || dist <= .01) return;
+      const nx = dx / dist;
+      const ny = dy / dist;
+      const overlap = min - dist;
+      ball.x += nx * overlap;
+      ball.y += ny * overlap;
+      const dot = ball.vx * nx + ball.vy * ny;
+      if (dot < 0) {
+        ball.vx -= (1 + physics.nailRestitution * .85) * dot * nx;
+        ball.vy -= (1 + physics.nailRestitution * .85) * dot * ny;
+      }
+      const spin = Math.sin(performance.now() / 180) * .22;
+      ball.vx += spin + nx * .08 + (ball.rightShot ? 0 : .14);
+      ball.vy = Math.max(.25, ball.vy + .12);
+      ball.glow = 1;
+    }
+
+    function collideWithAcrylicParts(ball) {
+      acrylicParts.forEach(part => {
+        const points = acrylicCanvasPoints(part);
+        let best = null;
+        const last = part.type === "curve" ? points.length - 1 : points.length;
+        for (let i = 0; i < last; i++) {
+          const a = points[i];
+          const b = points[(i + 1) % points.length];
+          const hit = nearestPointOnSegment(ball.x, ball.y, a.x, a.y, b.x, b.y);
+          if (!best || hit.dist < best.dist) best = hit;
+        }
+        const extra = part.type === "curve" ? (part.thickness || 22) / 720 * canvas.clientWidth / 2 : 0;
+        const inside = part.type !== "curve" && pointInCanvasPolygon({ x: ball.x, y: ball.y }, points);
+        if (!best || (!inside && best.dist > ball.r + extra)) return;
+        let nx = best.dist > .01 ? (ball.x - best.x) / best.dist : 0;
+        let ny = best.dist > .01 ? (ball.y - best.y) / best.dist : -1;
+        if (inside) {
+          const center = { x: sx(part.x), y: sy(part.y) };
+          const outwardX = ball.x - center.x;
+          const outwardY = ball.y - center.y;
+          const len = Math.hypot(outwardX, outwardY);
+          if (len > .01) {
+            nx = outwardX / len;
+            ny = outwardY / len;
+          }
+        }
+        const overlap = inside ? ball.r + best.dist + 2 : ball.r + extra - best.dist + 1;
+        ball.x += nx * overlap;
+        ball.y += ny * overlap;
+        const dot = ball.vx * nx + ball.vy * ny;
+        if (dot < 0) {
+          ball.vx -= (1 + physics.wallRestitution) * dot * nx;
+          ball.vy -= (1 + physics.wallRestitution) * dot * ny;
+        }
+        ball.vx += (Math.random() - .5) * .06;
+        ball.vy += (Math.random() - .5) * .04;
+        ball.glow = 1;
+      });
+    }
+
+    function nearestPointOnSegment(px, py, ax, ay, bx, by) {
+      const vx = bx - ax;
+      const vy = by - ay;
+      const lenSq = vx * vx + vy * vy || 1;
+      const t = Math.max(0, Math.min(1, ((px - ax) * vx + (py - ay) * vy) / lenSq));
+      const x = ax + vx * t;
+      const y = ay + vy * t;
+      return { x, y, dist: Math.hypot(px - x, py - y) };
+    }
+
+    function pointInCanvasPolygon(point, polygon) {
+      let inside = false;
+      for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        const a = polygon[i];
+        const b = polygon[j];
+        if (((a.y > point.y) !== (b.y > point.y)) && point.x < (b.x - a.x) * (point.y - a.y) / ((b.y - a.y) || .0001) + a.x) inside = !inside;
+      }
+      return inside;
+    }
+
+    function guideBall(ball, dt) {
+      let target;
+      if (ball.rightShot) {
+        if (ball.y < sy(140)) {
+          target = { x: sx(650), y: sy(92), force: .0022 };
+        } else if (ball.y < sy(330)) {
+          target = { x: sx(664), y: sy(360), force: .0016 };
+        } else if (ball.y < sy(545)) {
+          target = { x: sx(648), y: sy(565), force: state.rightDeviceOpen ? .0018 : .0012 };
+        } else {
+          target = { x: sx(612), y: sy(555), force: state.rightDeviceOpen ? .0022 : .0010 };
+        }
+      } else if (ball.y < sy(350)) {
+        target = { x: sx(84), y: sy(410), force: .00062 };
+      } else if (ball.y < sy(525)) {
+        target = { x: sx(96), y: sy(522), force: .00070 };
+      } else if (ball.y < sy(650)) {
+        target = { x: sx(250), y: sy(628), force: .00058 };
+      } else if (ball.y < sy(735)) {
+        target = { x: sx(ball.startEligible ? 366 : 344), y: sy(742), force: ball.startEligible ? .00076 : .00042 };
+      } else {
+        target = { x: sx(360), y: sy(ball.startEligible ? 772 : 812), force: ball.startEligible ? .00105 : .00038 };
+      }
+      const dx = target.x - ball.x;
+      const dy = target.y - ball.y;
+      const dist = Math.max(80, Math.hypot(dx, dy));
+      ball.vx += dx / dist * target.force * dt;
+      ball.vy += dy / dist * target.force * dt;
+
+      if (!ball.rightShot && ball.x < sx(150) && ball.y < sy(560)) {
+        ball.vx += .0008 * dt;
+        ball.vy += .010 * dt;
+      }
+      if (!ball.rightShot && ball.age < 520 && ball.y < sy(190)) {
+        ball.vx += .0032 * dt;
+        if (ball.vx < .14) ball.vx = .14;
+      }
+      if (!ball.rightShot && ball.x > sx(430)) {
+        ball.vx += (sx(300) - ball.x) * .000042 * dt;
+        ball.vy += .0028 * dt;
+      }
+      if (!ball.rightShot) {
+        const wx = sx(hitAreas.windmill.x);
+        const wy = sy(hitAreas.windmill.y);
+        const dxw = ball.x - wx;
+        const dyw = ball.y - wy;
+        const dw = Math.hypot(dxw, dyw);
+        if (dw < sx(78) && dw > 1) {
+          const spin = Math.sin(performance.now() / 260);
+          const rightBias = ball.startEligible ? .0038 : .0015;
+          const sideKick = dxw < 0 ? .0009 : .0016;
+          ball.vx += (rightBias + sideKick + spin * .0018) * dt;
+          ball.vy += .0022 * dt;
+          ball.glow = Math.max(ball.glow, .82);
+        }
+      }
+      if (!ball.rightShot && ball.y > sy(500) && ball.y < sy(650) && ball.x > sx(62) && ball.x < sx(300)) {
+        if (!ball.leftLcdSplitSide) ball.leftLcdSplitSide = Math.random() < (ball.startEligible ? .72 : .46) ? 1 : -1;
+        const splitX = ball.leftLcdSplitSide > 0 ? sx(ball.startEligible ? 358 : 314) : sx(148);
+        ball.vx += (splitX - ball.x) * .000034 * dt;
+        ball.vy += .0036 * dt;
+        if (Math.abs(ball.x - sx(220)) < sx(42)) {
+          ball.vx += ball.leftLcdSplitSide * .0022 * dt;
+        }
+      }
+      if (!ball.rightShot && ball.y > sy(520)) {
+        const laneX = ball.y < sy(690) ? sx(ball.startEligible ? 342 : 304) : sx(356);
+        ball.vx += (laneX - ball.x) * .000014 * dt;
+      }
+      if (!ball.rightShot && ball.y > sy(690) && ball.y < sy(775) && Math.abs(ball.x - sx(360)) < sx(116)) {
+        const centerPull = sx(360) - ball.x;
+        ball.vx += centerPull * .000012 * dt;
+        ball.vy += .0018 * dt;
+      }
+      if (!ball.rightShot && ball.startEligible && ball.y > sy(650) && ball.y < sy(798)) {
+        const hesoPull = sx(360) - ball.x;
+        ball.vx += hesoPull * .000082 * dt;
+        ball.vy += .0046 * dt;
+      }
+      if (!ball.rightShot && !ball.startEligible && ball.y > sy(790)) {
+        if (!ball.hesoSpillSide) {
+          state.spillFlip *= -1;
+          ball.hesoSpillSide = ball.x < sx(330) ? 1 : state.spillFlip;
+        }
+        const spillX = sx(ball.hesoSpillSide < 0 ? 322 : 398);
+        ball.vx += (spillX - ball.x) * .000012 * dt;
+        ball.vy += .0032 * dt;
+        if (ball.y > sy(812) && Math.abs(ball.x - sx(360)) < sx(38)) {
+          ball.vx += ball.hesoSpillSide * .0010 * dt;
+          ball.vy += .0042 * dt;
+        }
+      }
+      if (!ball.rightShot && ball.x > sx(470) && ball.y > sy(640)) {
+        ball.vx += (sx(360) - ball.x) * .000026 * dt;
+        ball.vy += .0032 * dt;
+      }
+      if (ball.startEligible && ball.y > sy(500)) {
+        ball.vx *= .998;
+        ball.vy *= .996;
+      }
+      if (ball.rightShot) {
+        if (ball.x < sx(540) && ball.y < sy(420)) {
+          ball.vx += .007 * dt;
+        }
+        if (ball.x > sx(610) && ball.y > sy(260)) {
+          ball.vx += (sx(642) - ball.x) * .000075 * dt;
+          ball.vy += .010 * dt;
+        }
+      }
+    }
+
+    function handlePocket(pocket, x, y) {
+      if (pocket.type === "out") {
+        burst(x, y, "#79889a", 8);
+        return;
+      }
+      state.wins++;
+      const prize = pocket.type === "start" ? 5 : 15;
+      state.balls += prize;
+      state.balance += prize;
+      state.payout += prize;
+      burst(x, y, pocket.color, 18);
+      if (pocket.type === "start") {
+        queueStartSpin();
+      }
+      else if (pocket.type === "attacker") addLog(`<span class="hit">右アタッカー入賞 +${prize}</span>`);
+      updateHud();
+    }
+
+    function queueStartSpin() {
+      if (state.pendingStarts >= maxHolds) {
+        pauseAutoForHold();
+        updateHud();
+        return false;
+      }
+      state.pendingStarts++;
+      burst(sx(360), sy(790), "#66e3ff", 14);
+      addLog("START通過 保留+1");
+      if (state.pendingStarts >= maxHolds) pauseAutoForHold();
+      processStartQueue();
+      updateHud();
+      return true;
+    }
+
+    function processStartQueue() {
+      if (spinLock || state.bonusActive || state.pendingStarts <= 0) return;
+      state.pendingStarts--;
+      resumeAutoFromHold();
+      startSpin();
+    }
+
+    function startSpin() {
+      if (spinLock) {
+        state.pendingStarts++;
+        addLog("保留が満タン");
+        return;
+      }
+      spinLock = true;
+      state.spins++;
+      state.sinceJackpotSpins++;
+      message("図柄変動中");
+      els.reels.forEach(r => r.classList.add("spin"));
+
+      let ticks = 0;
+      const spinTicks = state.speedMode ? 5 : 17;
+      const spinInterval = state.speedMode ? 28 : 90;
+      const interval = setInterval(() => {
+        ticks++;
+        els.reels.forEach(r => r.textContent = symbols[Math.floor(Math.random() * symbols.length)]);
+        if (ticks >= spinTicks) {
+          clearInterval(interval);
+          settleSpin();
+        }
+      }, spinInterval);
+      updateHud();
+    }
+
+    function settleSpin() {
+      const hitChance = 1 / 400;
+      const hit = Math.random() < hitChance;
+      if (hit) {
+        const sym = Math.random() < .55 ? "7" : symbols[Math.floor(Math.random() * symbols.length)];
+        els.reels.forEach(r => {
+          r.classList.remove("spin");
+          r.textContent = sym;
+        });
+        jackpot(sym);
+      } else {
+        const a = symbols[Math.floor(Math.random() * symbols.length)];
+        let b = symbols[Math.floor(Math.random() * symbols.length)];
+        let c = symbols[Math.floor(Math.random() * symbols.length)];
+        if (a === b && b === c) c = symbols[(symbols.indexOf(c) + 1) % symbols.length];
+        els.reels[0].textContent = a;
+        els.reels[1].textContent = b;
+        els.reels[2].textContent = c;
+        els.reels.forEach(r => r.classList.remove("spin"));
+        message("惜しい、次の入賞へ");
+        addLog(`ハズレ ${a}${b}${c}`);
+      }
+      spinLock = false;
+      processStartQueue();
+      updateHud();
+    }
+
+    function jackpot(symbol) {
+      state.jackpots++;
+      state.sinceJackpotSpins = 0;
+      state.pendingRush = rollInitialRush();
+      startBonus({
+        rounds: 5,
+        kind: "initial",
+        title: `${symbol}${symbol}${symbol} 初当たり5R`,
+        revealAtRound: 4
+      });
+    }
+
+    function settleSpin() {
+      const rushActive = state.rushMode !== "none" && state.stRemaining > 0;
+      if (rushActive) state.stRemaining--;
+      const hitChance = rushActive ? rushSpinChance() : 1 / 400;
+      const hit = Math.random() < hitChance;
+      if (hit) {
+        const sym = Math.random() < .55 ? "7" : symbols[Math.floor(Math.random() * symbols.length)];
+        els.reels.forEach(r => {
+          r.classList.remove("spin");
+          r.textContent = sym;
+        });
+        jackpot(sym);
+      } else {
+        const a = symbols[Math.floor(Math.random() * symbols.length)];
+        let b = symbols[Math.floor(Math.random() * symbols.length)];
+        let c = symbols[Math.floor(Math.random() * symbols.length)];
+        if (a === b && b === c) c = symbols[(symbols.indexOf(c) + 1) % symbols.length];
+        els.reels[0].textContent = a;
+        els.reels[1].textContent = b;
+        els.reels[2].textContent = c;
+        els.reels.forEach(r => r.classList.remove("spin"));
+        if (rushActive && state.stRemaining <= 0) {
+          resetToNormal("ST100回転終了 通常へ");
+        } else if (rushActive) {
+          state.mode = `${state.rushMode === "upper" ? "上位RUSH" : "RUSH"} ST${state.stRemaining}`;
+          message(`${state.mode} 継続中`);
+        } else {
+          message("ハズレ、次の入賞へ");
+        }
+        addLog(`ハズレ ${a}${b}${c}`);
+      }
+      spinLock = false;
+      processStartQueue();
+      updateHud();
+    }
+
+    function rushSpinChance() {
+      const totalChance = state.rushMode === "upper" ? .75 : .60;
+      return 1 - Math.pow(1 - totalChance, 1 / 100);
+    }
+
+    function jackpot(symbol) {
+      state.jackpots++;
+      state.sinceJackpotSpins = 0;
+      if (state.rushMode !== "none") {
+        registerRushHit();
+        startBonus({
+          rounds: 10,
+          kind: "rush",
+          title: state.rushMode === "upper" ? "上位RUSH 10R" : `RUSH ${state.rushStreak}連 10R`
+        });
+        return;
+      }
+      state.pendingRush = rollInitialRush();
+      startBonus({
+        rounds: 5,
+        kind: "initial",
+        title: `${symbol}${symbol}${symbol} 初当たり5R`,
+        revealAtRound: 4
+      });
+    }
+
+    function registerRushHit() {
+      if (state.rushMode === "rush") {
+        state.rushStreak++;
+        if (state.rushStreak >= 5) {
+          state.rushMode = "upper";
+          state.mode = "上位RUSH";
+          addLog(`<span class="hit">RUSH5連続 上位RUSH突入</span>`);
+        }
+      }
+      state.stRemaining = 0;
+    }
+
+    function rollInitialRush() {
+      const roll = Math.random();
+      if (roll < .01) return "upper";
+      if (roll < .51) return "rush";
+      return "none";
+    }
+
+    function startBonus({ rounds, kind, title, revealAtRound = 0 }) {
+      clearInterval(state.bonusTimer);
+      state.rounds = rounds;
+      state.bonusActive = true;
+      state.feverUntil = performance.now() + rounds * 900;
+      state.mode = kind === "rush" ? (state.rushMode === "upper" ? "上位RUSH BONUS" : "RUSH BONUS") : "初当たりBONUS";
+      state.rightDeviceOpen = true;
+      machine.classList.add("fever");
+      syncHandleUi();
+      message(`${title} 右打ち`);
+      addLog(`<span class="hit">${title} 開始</span>`);
+      payRound(rounds, kind, revealAtRound);
+    }
+
+    function payRound(rounds, kind, revealAtRound) {
+      const prize = 300;
+      let paid = 0;
+      state.bonusTimer = setInterval(() => {
+        if (paid >= rounds) {
+          clearInterval(state.bonusTimer);
+          state.bonusTimer = null;
+          finishBonus(kind);
+          return;
+        }
+        paid++;
+        state.balls += prize;
+        state.balance += prize;
+        state.payout += prize;
+        if (kind === "initial" && paid === revealAtRound) revealInitialRush();
+        message(`${state.mode} ${paid}/${rounds}R +${prize}`);
+        burst(sx(360), sy(646), paid % 2 ? "#ffd36a" : "#ff6f9f", 26);
+        updateHud();
+      }, 650);
+    }
+
+    function revealInitialRush() {
+      if (state.pendingRush === "upper") {
+        state.rushMode = "upper";
+        state.rushStreak = 5;
+        state.mode = "上位RUSH突入";
+        message("4R告知 上位RUSH突入");
+        addLog(`<span class="hit">4R告知: 上位RUSH突入</span>`);
+      } else if (state.pendingRush === "rush") {
+        state.rushMode = "rush";
+        state.rushStreak = 0;
+        state.mode = "RUSH突入";
+        message("4R告知 RUSH突入");
+        addLog(`<span class="hit">4R告知: RUSH突入</span>`);
+      } else {
+        state.rushMode = "none";
+        state.rushStreak = 0;
+        state.mode = "通常へ";
+        message("4R告知 RUSHなし");
+        addLog("4R告知: RUSHなし");
+      }
+      updateHud();
+    }
+
+    function finishBonus(kind) {
+      state.bonusActive = false;
+      state.rightDeviceOpen = false;
+      machine.classList.remove("fever");
+      state.rounds = 0;
+      syncHandleUi();
+
+      if (kind === "initial" && state.rushMode === "none") {
+        resetToNormal("初当たり終了 通常へ");
+        processStartQueue();
+        return;
+      }
+
+      if (state.rushMode !== "none") {
+        state.mode = state.rushMode === "upper" ? "上位RUSH" : "RUSH";
+        message(`${state.mode} 継続抽選中`);
+        updateHud();
+        setTimeout(rollRushContinue, 900);
+        return;
+      }
+
+      resetToNormal("通常へ");
+    }
+
+    function rollRushContinue() {
+      if (state.rushMode === "none" || state.bonusActive) return;
+      const chance = state.rushMode === "upper" ? .75 : .60;
+      const hit = Math.random() < chance;
+      if (!hit) {
+        resetToNormal(`${state.mode}終了 通常へ`);
+        return;
+      }
+      if (state.rushMode === "rush") {
+        state.rushStreak++;
+        if (state.rushStreak >= 5) {
+          state.rushMode = "upper";
+          state.mode = "上位RUSH";
+          addLog(`<span class="hit">RUSH5連続 上位RUSH突入</span>`);
+        }
+      }
+      state.jackpots++;
+      startBonus({
+        rounds: 10,
+        kind: "rush",
+        title: state.rushMode === "upper" ? "上位RUSH 10R" : `RUSH ${state.rushStreak}連 10R`
+      });
+    }
+
+    function finishBonus(kind) {
+      state.bonusActive = false;
+      state.rightDeviceOpen = false;
+      machine.classList.remove("fever");
+      state.rounds = 0;
+      syncHandleUi();
+
+      if (kind === "initial" && state.rushMode === "none") {
+        resetToNormal("初当たり終了 通常へ");
+        processStartQueue();
+        return;
+      }
+
+      if (state.rushMode !== "none") {
+        enterRushSt();
+        return;
+      }
+
+      resetToNormal("通常へ");
+    }
+
+    function enterRushSt() {
+      state.stRemaining = 100;
+      state.mode = `${state.rushMode === "upper" ? "上位RUSH" : "RUSH"} ST100`;
+      message(`${state.mode} 開始`);
+      addLog(`<span class="hit">${state.mode} 開始</span>`);
+      updateHud();
+      processStartQueue();
+    }
+
+    function resetToNormal(text) {
+      state.mode = "通常";
+      state.rushMode = "none";
+      state.rushStreak = 0;
+      state.stRemaining = 0;
+      state.pendingRush = "none";
+      state.bonusActive = false;
+      state.rightDeviceOpen = false;
+      state.feverUntil = 0;
+      state.rounds = 0;
+      machine.classList.remove("fever");
+      message(text);
+      addLog(text);
+      updateHud();
+      processStartQueue();
+    }
+
+    function draw() {
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      ctx.clearRect(0, 0, w, h);
+
+      drawCabinetShell(w, h);
+
+      ctx.save();
+      ctx.beginPath();
+      playfieldPath(playfieldShape());
+      ctx.clip();
+      drawPlayfieldBackground(w, h);
+
+      ctx.strokeStyle = "rgba(255,255,255,.18)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      playfieldPath(playfieldShape(), -Math.max(34, w * .055));
+      ctx.stroke();
+
+      drawBoardOrnaments(w, h);
+      drawNailHighlights(w, h);
+      drawRightDevice(w, h);
+      drawPockets();
+      drawPins();
+      drawPinEditorOverlay(w, h);
+      drawBalls();
+      drawParticles();
+      drawPlayfieldDebugOverlay(w, h);
+      ctx.restore();
+
+      drawPushButton(w, h);
+      drawCabinetDebugOverlay(w, h);
+    }
+
+    function drawCabinetShell(w, h) {
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, "#263241");
+      grad.addColorStop(.45, "#121923");
+      grad.addColorStop(1, "#070b10");
+      ctx.fillStyle = grad;
+      roundRect(0, 0, w, h, 8);
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(0,0,0,.24)";
+      roundRect(w * .035, h * .055, w * .93, h * .90, Math.max(20, w * .035));
+      ctx.fill();
+    }
+
+    function drawPlayfieldBackground(w, h) {
+      const bg = ctx.createRadialGradient(w * .50, h * .44, w * .10, w * .50, h * .48, w * .58);
+      bg.addColorStop(0, "#263d52");
+      bg.addColorStop(.56, "#122231");
+      bg.addColorStop(1, "#071019");
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, w, h);
+
+      const plate = ctx.createLinearGradient(0, h * .08, 0, h * .90);
+      plate.addColorStop(0, "rgba(255,255,255,.08)");
+      plate.addColorStop(.42, "rgba(102,227,255,.05)");
+      plate.addColorStop(1, "rgba(0,0,0,.20)");
+      ctx.fillStyle = plate;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    function drawFrontGlass(w, h) {
+      ctx.save();
+      ctx.globalCompositeOperation = "screen";
+      ctx.strokeStyle = "rgba(255,255,255,.18)";
+      ctx.lineWidth = Math.max(2, w * .004);
+      ctx.beginPath();
+      ctx.moveTo(w * .16, h * .12);
+      ctx.bezierCurveTo(w * .36, h * .05, w * .68, h * .09, w * .86, h * .20);
+      ctx.stroke();
+
+      const shine = ctx.createLinearGradient(w * .05, h * .12, w * .38, h * .48);
+      shine.addColorStop(0, "rgba(255,255,255,.16)");
+      shine.addColorStop(.36, "rgba(255,255,255,.05)");
+      shine.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = shine;
+      roundRect(w * .05, h * .10, w * .26, h * .42, 16);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawAcrylicFrame(w, h) {
+      ctx.save();
+      const field = playfieldShape();
+      const frameGrad = ctx.createLinearGradient(0, 0, w, h);
+      frameGrad.addColorStop(0, "rgba(255,255,255,.30)");
+      frameGrad.addColorStop(.36, "rgba(178,235,255,.08)");
+      frameGrad.addColorStop(.72, "rgba(255,255,255,.04)");
+      frameGrad.addColorStop(1, "rgba(102,227,255,.18)");
+      ctx.strokeStyle = frameGrad;
+      ctx.lineWidth = Math.max(10, w * .022);
+      ctx.beginPath();
+      playfieldPath(field, Math.max(8, w * .014));
+      ctx.stroke();
+
+      ctx.strokeStyle = "rgba(255,255,255,.28)";
+      ctx.lineWidth = Math.max(2, w * .004);
+      ctx.beginPath();
+      playfieldPath(field, -Math.max(4, w * .008));
+      ctx.stroke();
+
+      ctx.strokeStyle = "rgba(102,227,255,.16)";
+      ctx.lineWidth = Math.max(3, w * .006);
+      ctx.beginPath();
+      playfieldPath(field, -Math.max(22, w * .038));
+      ctx.stroke();
+
+      const shine = ctx.createLinearGradient(w * .12, h * .08, w * .44, h * .34);
+      shine.addColorStop(0, "rgba(255,255,255,.30)");
+      shine.addColorStop(.44, "rgba(255,255,255,.08)");
+      shine.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.strokeStyle = shine;
+      ctx.lineWidth = Math.max(4, w * .008);
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(w * .12, h * .13);
+      ctx.bezierCurveTo(w * .20, h * .07, w * .35, h * .08, w * .47, h * .15);
+      ctx.stroke();
+
+      ctx.strokeStyle = "rgba(255,255,255,.18)";
+      ctx.lineWidth = Math.max(2, w * .004);
+      ctx.beginPath();
+      ctx.moveTo(w * .82, h * .18);
+      ctx.bezierCurveTo(w * .91, h * .36, w * .91, h * .62, w * .81, h * .80);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function playfieldPath(field, offset = 0) {
+      const rx = field.rx + offset;
+      const ry = field.ry + offset;
+      const topY = field.topY - offset * .15;
+      const leftTopX = field.x - rx * .93;
+      const rightTopX = field.x + rx * .93;
+      const bottomY = field.y + ry;
+      ctx.moveTo(leftTopX, topY);
+      ctx.bezierCurveTo(field.x - rx * .54, topY - ry * .035, field.x + rx * .54, topY - ry * .035, rightTopX, topY);
+      ctx.bezierCurveTo(field.x + rx * 1.05, field.y + ry * .18, field.x + rx * .92, field.y + ry * .76, field.x, bottomY);
+      ctx.bezierCurveTo(field.x - rx * .92, field.y + ry * .76, field.x - rx * 1.05, field.y + ry * .18, leftTopX, topY);
+      ctx.closePath();
+    }
+
+    function drawBoardOrnaments(w, h) {
+      ctx.save();
+      ctx.fillStyle = "rgba(255,211,106,.10)";
+      ctx.strokeStyle = "rgba(255,211,106,.24)";
+      for (let i = 0; i < 7; i++) {
+        const x = w * (.30 + i * .067);
+        ctx.beginPath();
+        ctx.ellipse(x, h * .095, w * .045, h * .06, (i - 3) * .28, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+      ctx.fillStyle = "rgba(255,255,255,.09)";
+      ctx.beginPath();
+      ctx.arc(w * .50, h * .10, w * .095, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      drawWindmill(sx(hitAreas.windmill.x), sy(hitAreas.windmill.y), hitAreas.windmill.r / 720 * w);
+      ctx.restore();
+    }
+
+    function drawLcdGuard(w, h) {
+      const block = lcdBlock();
+      ctx.save();
+      const guardGrad = ctx.createLinearGradient(block.left, block.top, block.right, block.bottom);
+      guardGrad.addColorStop(0, "rgba(255,255,255,.34)");
+      guardGrad.addColorStop(.45, "rgba(102,227,255,.18)");
+      guardGrad.addColorStop(1, "rgba(255,255,255,.10)");
+      ctx.strokeStyle = guardGrad;
+      ctx.lineWidth = Math.max(6, w * .010);
+      roundRect(block.left, block.top, block.right - block.left, block.bottom - block.top, 16);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,.24)";
+      ctx.lineWidth = Math.max(2, w * .004);
+      roundRect(block.left + 8, block.top + 8, block.right - block.left - 16, block.bottom - block.top - 16, 12);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,.22)";
+      ctx.lineWidth = Math.max(3, w * .006);
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(block.left + 22, block.top + 18);
+      ctx.lineTo(block.right - 46, block.top + 18);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(102, 227, 255, .10)";
+      roundRect(sx(44), sy(120), sx(76), sy(120), 10);
+      ctx.fill();
+      roundRect(sx(612), sy(120), sx(76), sy(120), 10);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawLcdClearance(w, h) {
+      const block = lcdBlock();
+      const pad = Math.max(8, w * .014);
+      ctx.save();
+      const x = block.left - pad;
+      const y = block.top - pad;
+      const width = block.right - block.left + pad * 2;
+      const height = block.bottom - block.top + pad * 2;
+      const fade = ctx.createLinearGradient(x, y, x + width, y + height);
+      fade.addColorStop(0, "rgba(7, 13, 19, .94)");
+      fade.addColorStop(.45, "rgba(10, 22, 32, .76)");
+      fade.addColorStop(1, "rgba(7, 13, 19, .88)");
+      ctx.fillStyle = fade;
+      roundRect(x, y, width, height, 18);
+      ctx.fill();
+
+      const guardGrad = ctx.createLinearGradient(block.left, block.top, block.right, block.bottom);
+      guardGrad.addColorStop(0, "rgba(255,255,255,.38)");
+      guardGrad.addColorStop(.50, "rgba(102,227,255,.22)");
+      guardGrad.addColorStop(1, "rgba(255,255,255,.12)");
+      ctx.strokeStyle = guardGrad;
+      ctx.lineWidth = Math.max(7, w * .012);
+      roundRect(block.left - 2, block.top - 2, block.right - block.left + 4, block.bottom - block.top + 4, 18);
+      ctx.stroke();
+
+      ctx.strokeStyle = "rgba(255,255,255,.24)";
+      ctx.lineWidth = Math.max(2, w * .004);
+      roundRect(block.left + 10, block.top + 10, block.right - block.left - 20, block.bottom - block.top - 20, 12);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawNailHighlights(w, h) {
+      ctx.save();
+      ctx.fillStyle = "rgba(255, 232, 71, .22)";
+      ctx.strokeStyle = "rgba(255, 232, 71, .50)";
+      ctx.lineWidth = 2;
+      roundRect(sx(108), sy(320), sx(58), sy(112), 16);
+      ctx.fill();
+      ctx.stroke();
+      roundRect(sx(88), sy(458), sx(108), sy(98), 18);
+      ctx.fill();
+      ctx.stroke();
+      roundRect(sx(118), sy(630), sx(146), sy(76), 14);
+      ctx.fill();
+      ctx.stroke();
+      roundRect(sx(560), sy(182), sx(116), sy(232), 24);
+      ctx.fill();
+      ctx.stroke();
+      roundRect(sx(606), sy(420), sx(60), sy(120), 16);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawWindmill(x, y, r) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle = "rgba(0,0,0,.50)";
+      ctx.strokeStyle = "rgba(255,211,106,.88)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.rotate(performance.now() / 1200);
+      for (let i = 0; i < 3; i++) {
+        ctx.rotate(Math.PI * 2 / 3);
+        ctx.fillStyle = "rgba(255, 211, 106, .78)";
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(r * .20, -r * .88);
+        ctx.lineTo(-r * .20, -r * .88);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.fillStyle = "#101923";
+      ctx.beginPath();
+      ctx.arc(0, 0, r * .22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawAcrylicParts(w, h) {
+      ctx.save();
+      acrylicParts.forEach(part => {
+        if (part.type === "curve") {
+          const controls = acrylicControlCanvasPoints(part);
+          if (controls.length < 3) return;
+          const thickness = Math.max(8, (part.thickness || 22) / 720 * w);
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.strokeStyle = "rgba(190, 244, 255, .34)";
+          ctx.lineWidth = thickness;
+          ctx.beginPath();
+          ctx.moveTo(controls[0].x, controls[0].y);
+          ctx.quadraticCurveTo(controls[1].x, controls[1].y, controls[2].x, controls[2].y);
+          ctx.stroke();
+          ctx.strokeStyle = "rgba(255,255,255,.26)";
+          ctx.lineWidth = Math.max(2, thickness * .34);
+          ctx.beginPath();
+          ctx.moveTo(controls[0].x, controls[0].y);
+          ctx.quadraticCurveTo(controls[1].x, controls[1].y, controls[2].x, controls[2].y);
+          ctx.stroke();
+          return;
+        }
+        const points = acrylicCanvasPoints(part);
+        const bounds = acrylicBounds(part);
+        const x = sx(bounds.x);
+        const y = sy(bounds.y);
+        const width = bounds.w / 720 * w;
+        const height = bounds.h / 900 * h;
+        const grad = ctx.createLinearGradient(x, y, x + width, y + height);
+        grad.addColorStop(0, "rgba(190, 244, 255, .34)");
+        grad.addColorStop(.42, "rgba(102, 227, 255, .12)");
+        grad.addColorStop(1, "rgba(255, 255, 255, .18)");
+        ctx.fillStyle = grad;
+        ctx.strokeStyle = "rgba(190, 244, 255, .68)";
+        ctx.lineWidth = Math.max(2, w * .004);
+        drawPolygonPath(points);
+        ctx.fill();
+        ctx.stroke();
+        ctx.strokeStyle = "rgba(255,255,255,.28)";
+        ctx.lineWidth = 1;
+        drawPolygonPath(points.map(point => ({
+          x: point.x + (sx(part.x) - point.x) * .08,
+          y: point.y + (sy(part.y) - point.y) * .08
+        })));
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    function drawPolygonPath(points) {
+      if (!points.length) return;
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+      ctx.closePath();
+    }
+
+    function drawLaunchPorts(w, h) {
+      ctx.save();
+      const port = hitAreas.launch;
+      const x = sx(port.x);
+      const y = sy(port.y);
+      const r = port.r / 720 * w;
+      const color = isJackpotActive() ? "#ffd36a" : "#66e3ff";
+      ctx.fillStyle = "rgba(255,255,255,.18)";
+      ctx.strokeStyle = color;
+      ctx.lineWidth = Math.max(2, w * .004);
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, Math.max(5, r * .34), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawStage(w, h) {
+      ctx.save();
+      ctx.fillStyle = "rgba(255,255,255,.12)";
+      ctx.strokeStyle = "rgba(255,255,255,.34)";
+      ctx.lineWidth = 2;
+      roundRect(sx(284), sy(708), sx(152), sy(40), 8);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,.68)";
+      ctx.font = `800 ${Math.max(11, w * .026)}px "Segoe UI", "Noto Sans JP", sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("STAGE", sx(360), sy(728));
+      ctx.restore();
+    }
+
+    function drawRouteGuides(w, h) {
+      const jackpot = isJackpotActive();
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = `900 ${Math.max(13, w * .033)}px "Segoe UI", "Noto Sans JP", sans-serif`;
+
+      ctx.fillStyle = jackpot ? "rgba(102, 227, 255, .16)" : "rgba(102, 227, 255, .34)";
+      ctx.strokeStyle = jackpot ? "rgba(102, 227, 255, .28)" : "rgba(102, 227, 255, .86)";
+      ctx.lineWidth = 2;
+      roundRect(w * .06, h * .18, w * .22, h * .08, 8);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#dff8ff";
+
+      ctx.fillStyle = jackpot ? "rgba(255, 111, 159, .36)" : "rgba(255, 111, 159, .12)";
+      ctx.strokeStyle = jackpot ? "rgba(255, 211, 106, .94)" : "rgba(255, 111, 159, .25)";
+      roundRect(w * .72, h * .18, w * .22, h * .08, 8);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = jackpot ? "#fff4c2" : "rgba(255, 255, 255, .55)";
+
+      drawArrow(w * .19, h * .25, w * .30, h * .67, jackpot ? "rgba(102,227,255,.24)" : "rgba(102,227,255,.82)");
+      drawArrow(w * .82, h * .25, w * .85, h * .60, jackpot ? "rgba(255,211,106,.90)" : "rgba(255,111,159,.25)");
+      ctx.restore();
+    }
+
+    function drawArrow(x1, y1, x2, y2, color) {
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = 4;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.quadraticCurveTo((x1 + x2) / 2, y1 - 18, x2, y2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - Math.cos(angle - .5) * 18, y2 - Math.sin(angle - .5) * 18);
+      ctx.lineTo(x2 - Math.cos(angle + .5) * 18, y2 - Math.sin(angle + .5) * 18);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drawRails(w, h) {
+      ctx.strokeStyle = "rgba(255,255,255,.28)";
+      ctx.lineWidth = Math.max(8, w * .016);
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(w * .09, h * .88);
+      ctx.bezierCurveTo(w * .04, h * .55, w * .16, h * .10, w * .50, h * .06);
+      ctx.bezierCurveTo(w * .76, h * .03, w * .92, h * .25, w * .91, h * .56);
+      ctx.stroke();
+
+      ctx.strokeStyle = "rgba(102,227,255,.32)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    function drawPins() {
+      const palette = {
+        hot: ["#ff3b35", "rgba(255, 232, 71, .32)"],
+        warp: ["#ff3b35", "rgba(255, 232, 71, .30)"],
+        road: ["#ff3b35", "rgba(255, 232, 71, .28)"],
+        heso: ["#fff4c2", "rgba(102, 227, 255, .30)"],
+        spill: ["#d6e3ee", "rgba(255,255,255,.18)"],
+        attacker: ["#ffd36a", "rgba(255, 111, 159, .30)"],
+        normal: ["#dde9f5", "rgba(102,227,255,.22)"]
+      };
+      pins.forEach(pin => {
+        const x = sx(pin.x);
+        const y = sy(pin.y);
+        const r = Math.max(1.45, fixedPinRadius / 720 * canvas.clientWidth);
+        const colors = palette[pin.kind] || palette.normal;
+        if (pin.kind && pin.kind !== "normal") {
+          ctx.fillStyle = colors[1];
+          ctx.beginPath();
+          ctx.arc(x, y, r * 1.18, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        if (nailImageReady) {
+          const size = r * 2.45;
+          ctx.drawImage(nailImage, x - size / 2, y - size / 2, size, size);
+        } else {
+          ctx.fillStyle = colors[0];
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = pin.kind === "normal" ? colors[1] : "rgba(255,255,255,.45)";
+          ctx.beginPath();
+          ctx.arc(x - r * .35, y - r * .35, r * .36, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+    }
+
+    function drawPinEditorOverlay(w, h) {
+      if (!state.pinEditor) return;
+      ctx.save();
+      ctx.strokeStyle = "rgba(255,255,255,.55)";
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= 720; x += 60) {
+        ctx.beginPath();
+        ctx.moveTo(sx(x), 0);
+        ctx.lineTo(sx(x), h);
+        ctx.stroke();
+      }
+      for (let y = 0; y <= 900; y += 60) {
+        ctx.beginPath();
+        ctx.moveTo(0, sy(y));
+        ctx.lineTo(w, sy(y));
+        ctx.stroke();
+      }
+      state.selectedPins.forEach(index => {
+        const pin = pins[index];
+        if (!pin) return;
+        const x = sx(pin.x);
+        const y = sy(pin.y);
+        ctx.strokeStyle = "#66e3ff";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, y, Math.max(9, fixedPinRadius / 720 * canvas.clientWidth + 8), 0, Math.PI * 2);
+        ctx.stroke();
+      });
+      allHitTargetSpecs().forEach(spec => {
+        if (!state.selectedHits.has(spec.id)) return;
+        ctx.strokeStyle = "#ffd36a";
+        ctx.lineWidth = 2;
+        if (spec.shape === "circle") {
+          const r = spec.obj.r / 720 * w;
+          ctx.beginPath();
+          ctx.arc(sx(spec.obj.x), sy(spec.obj.y), r + 6, 0, Math.PI * 2);
+          ctx.stroke();
+          return;
+        }
+        if (spec.shape === "poly") {
+          const points = acrylicCanvasPoints(spec.obj);
+          drawPolygonPath(points);
+          ctx.stroke();
+          ctx.fillStyle = "#ffd36a";
+          points.forEach(point => {
+            ctx.beginPath();
+            ctx.rect(point.x - 5, point.y - 5, 10, 10);
+            ctx.fill();
+          });
+          return;
+        }
+        if (spec.shape === "curve") {
+          const controls = acrylicControlCanvasPoints(spec.obj);
+          ctx.save();
+          ctx.setLineDash([6, 5]);
+          ctx.strokeStyle = "#ffd36a";
+          ctx.beginPath();
+          ctx.moveTo(controls[0].x, controls[0].y);
+          ctx.lineTo(controls[1].x, controls[1].y);
+          ctx.lineTo(controls[2].x, controls[2].y);
+          ctx.stroke();
+          ctx.restore();
+          ctx.fillStyle = "#ffd36a";
+          controls.forEach(point => {
+            ctx.beginPath();
+            ctx.rect(point.x - 5, point.y - 5, 10, 10);
+            ctx.fill();
+          });
+          return;
+        }
+        const box = hitRectBounds(spec);
+        roundRect(sx(box.x), sy(box.y), box.w / 720 * w, box.h / 900 * h, 8);
+        ctx.stroke();
+      });
+      if (state.selectionRect) {
+        const rect = normalizedRect(state.selectionRect);
+        ctx.fillStyle = "rgba(102, 227, 255, .14)";
+        ctx.strokeStyle = "rgba(102, 227, 255, .95)";
+        ctx.lineWidth = 2;
+        roundRect(sx(rect.x), sy(rect.y), rect.w / 720 * w, rect.h / 900 * h, 6);
+        ctx.fill();
+        ctx.stroke();
+      }
+      if (state.selectedPin >= 0 && pins[state.selectedPin]) {
+        const pin = pins[state.selectedPin];
+        const x = sx(pin.x);
+        const y = sy(pin.y);
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(x, y, Math.max(9, fixedPinRadius / 720 * canvas.clientWidth + 8), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawPockets() {
+      pockets.forEach(p => {
+        if (p.type === "attacker" && !state.rightDeviceOpen) return;
+        const x = sx(p.x);
+        const y = sy(p.y);
+        const r = p.r / 720 * canvas.clientWidth;
+        if (p.shape === "bowl" || p.type === "start") {
+          const bw = (p.w || 104) / 720 * canvas.clientWidth;
+          const bh = (p.h || 42) / 900 * canvas.clientHeight;
+          const bottomW = bw * .56;
+          const left = x - bw / 2;
+          const right = x + bw / 2;
+          const bottomLeft = x - bottomW / 2;
+          const bottomRight = x + bottomW / 2;
+          ctx.fillStyle = "rgba(0,0,0,.66)";
+          ctx.beginPath();
+          ctx.moveTo(left - 5, y - 3);
+          ctx.lineTo(right + 5, y - 3);
+          ctx.quadraticCurveTo(right - bw * .10, y + bh * .78, bottomRight + 5, y + bh + 5);
+          ctx.lineTo(bottomLeft - 5, y + bh + 5);
+          ctx.quadraticCurveTo(left + bw * .10, y + bh * .78, left - 5, y - 3);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(left, y);
+          ctx.lineTo(right, y);
+          ctx.quadraticCurveTo(right - bw * .10, y + bh * .72, bottomRight, y + bh);
+          ctx.lineTo(bottomLeft, y + bh);
+          ctx.quadraticCurveTo(left + bw * .10, y + bh * .72, left, y);
+          ctx.stroke();
+          ctx.strokeStyle = "rgba(136,149,164,.90)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(bottomLeft, y + bh);
+          ctx.lineTo(bottomRight, y + bh);
+          ctx.stroke();
+          ctx.fillStyle = "#ffffff";
+          ctx.font = `800 ${Math.max(8, bh * .24)}px "Segoe UI", sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(p.label, x, y + bh * .38);
+          return;
+        }
+        if (p.shape === "semicircle" || p.type === "out") {
+          ctx.fillStyle = "rgba(0,0,0,.68)";
+          ctx.beginPath();
+          ctx.arc(x, y, r + 6, Math.PI, Math.PI * 2);
+          ctx.lineTo(x + r + 6, y + 10);
+          ctx.lineTo(x - r - 6, y + 10);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(x, y, r, Math.PI, Math.PI * 2);
+          ctx.stroke();
+          return;
+        }
+        const outer = p.type === "start" ? 2 : 5;
+        ctx.fillStyle = "rgba(0,0,0,.62)";
+        ctx.beginPath();
+        ctx.arc(x, y, r + outer, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = p.type === "start" ? 2 : 3;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = p.type === "out" ? "#8895a4" : "#ffffff";
+        ctx.font = `800 ${Math.max(9, r * (p.type === "start" ? .55 : .42))}px "Segoe UI", sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(p.label, x, y);
+      });
+    }
+
+    function drawRightDevice(w, h) {
+      const active = isJackpotActive();
+      const open = state.rightDeviceOpen;
+      const device = hitAreas.rightDevice;
+      const cx = sx(device.x);
+      const cy = sy(device.y);
+      const scale = canvas.clientWidth / 720;
+      const dw = device.w * scale;
+      const dh = device.h * scale;
+      const pulse = active ? .55 + Math.sin(performance.now() / 120) * .25 : .16;
+      const flap = open ? 1 : 0;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.fillStyle = active ? `rgba(255, 211, 106, ${pulse})` : "rgba(255, 255, 255, .08)";
+      ctx.strokeStyle = active ? "#ffd36a" : "rgba(255,255,255,.22)";
+      ctx.lineWidth = 3;
+      roundRect(-dw / 2, -dh / 2, dw, dh, 10 * scale);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.save();
+      ctx.rotate(active ? performance.now() / 360 : 0);
+      ctx.strokeStyle = active ? "rgba(255,111,159,.95)" : "rgba(255,255,255,.20)";
+      ctx.lineWidth = 5 * scale;
+      for (let i = 0; i < 3; i++) {
+        ctx.rotate(Math.PI * 2 / 3);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, -38 * scale);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      ctx.fillStyle = "#141a22";
+      roundRect(-50 * scale, 24 * scale, 100 * scale, 38 * scale, 8 * scale);
+      ctx.fill();
+      ctx.strokeStyle = open ? "#ffffff" : "rgba(255,255,255,.28)";
+      ctx.stroke();
+      ctx.fillStyle = open ? "#fff4c2" : "rgba(255,255,255,.45)";
+      ctx.font = `900 ${Math.max(12, 18 * scale)}px "Segoe UI", sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(open ? "OPEN" : "LOCK", 0, 44 * scale);
+
+      ctx.fillStyle = open ? "rgba(255,211,106,.92)" : "rgba(255,255,255,.18)";
+      ctx.beginPath();
+      ctx.moveTo(-32 * scale, 10 * scale);
+      ctx.lineTo((-78 + flap * 30) * scale, (-22 + flap * 12) * scale);
+      ctx.lineTo(-32 * scale, -44 * scale);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(32 * scale, 10 * scale);
+      ctx.lineTo((78 - flap * 30) * scale, (-22 + flap * 12) * scale);
+      ctx.lineTo(32 * scale, -44 * scale);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawBalls() {
+      balls.forEach(ball => {
+        if (ball.trail?.length > 1) {
+          ctx.save();
+          ball.trail.forEach((point, index) => {
+            const alpha = (index + 1) / ball.trail.length * .23;
+            const scale = .58 + index / ball.trail.length * .34;
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = "rgba(210, 232, 255, .72)";
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, ball.r * scale, 0, Math.PI * 2);
+            ctx.fill();
+          });
+          ctx.restore();
+        }
+        if (ballImageReady) {
+          const size = ball.r * 2.35;
+          ctx.save();
+          ctx.translate(ball.x, ball.y);
+          ctx.rotate(ball.angle || 0);
+          ctx.drawImage(ballImage, -size / 2, -size / 2, size, size);
+          ctx.restore();
+        } else {
+          const g = ctx.createRadialGradient(ball.x - ball.r * .35, ball.y - ball.r * .45, 1, ball.x, ball.y, ball.r * 1.2);
+          g.addColorStop(0, "#ffffff");
+          g.addColorStop(.42, "#dce9f7");
+          g.addColorStop(1, "#708092");
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        if (ball.glow > .45) {
+          ctx.strokeStyle = `rgba(102,227,255,${(ball.glow - .45) * .85})`;
+          ctx.lineWidth = 3;
+          ctx.stroke();
+        }
+      });
+    }
+
+    function drawParticles() {
+      particles.forEach(p => {
+        ctx.globalAlpha = Math.max(0, p.life / 50);
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      });
+    }
+
+    function drawLauncher(w, h) {
+      const jackpot = isJackpotActive();
+      ctx.fillStyle = "rgba(255,211,106,.18)";
+      roundRect(w * .10, h * .12, w * .08, h * .16, 7);
+      ctx.fill();
+      ctx.strokeStyle = jackpot ? "rgba(255,255,255,.20)" : "rgba(102,227,255,.85)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = jackpot ? "#6f7b89" : "#66e3ff";
+      ctx.beginPath();
+      ctx.arc(w * .14, h * .19, Math.max(12, w * .024), 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = jackpot ? "rgba(255,211,106,.24)" : "rgba(255,111,159,.10)";
+      roundRect(w * .86, h * .12, w * .08, h * .16, 7);
+      ctx.fill();
+      ctx.strokeStyle = jackpot ? "rgba(255,211,106,.88)" : "rgba(255,255,255,.18)";
+      ctx.stroke();
+      ctx.fillStyle = jackpot ? "#ffd36a" : "#4b5563";
+      ctx.beginPath();
+      ctx.arc(w * .90, h * .19, Math.max(12, w * .024), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawPushButton(w, h) {
+      const button = pushButtonShape();
+      const pulse = .55 + Math.sin(performance.now() / 260) * .08;
+      ctx.save();
+      ctx.translate(button.x, button.y);
+
+      ctx.fillStyle = "rgba(0,0,0,.36)";
+      ctx.beginPath();
+      ctx.ellipse(0, button.r * .92, button.r * .95, button.r * .22, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const rim = ctx.createRadialGradient(-button.r * .25, -button.r * .35, button.r * .10, 0, 0, button.r * 1.08);
+      rim.addColorStop(0, "rgba(255,255,255,.86)");
+      rim.addColorStop(.34, "rgba(210,244,255,.38)");
+      rim.addColorStop(.58, "rgba(102,227,255,.20)");
+      rim.addColorStop(1, "rgba(8,12,18,.86)");
+      ctx.fillStyle = rim;
+      ctx.beginPath();
+      ctx.arc(0, 0, button.r, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(255,255,255,.38)";
+      ctx.lineWidth = Math.max(3, w * .006);
+      ctx.stroke();
+
+      const face = ctx.createRadialGradient(-button.r * .28, -button.r * .34, button.r * .12, 0, 0, button.r * .72);
+      face.addColorStop(0, "rgba(255,255,255,.96)");
+      face.addColorStop(.22, "#ff9fc0");
+      face.addColorStop(.70, "#db255f");
+      face.addColorStop(1, "#7b1232");
+      ctx.fillStyle = face;
+      ctx.beginPath();
+      ctx.arc(0, 0, button.r * .72, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = `rgba(255,211,106,${pulse})`;
+      ctx.lineWidth = Math.max(2, w * .004);
+      ctx.beginPath();
+      ctx.arc(0, 0, button.r * .82, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = "#fff7dc";
+      ctx.font = `900 ${Math.max(14, button.r * .28)}px "Segoe UI", sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("PUSH", 0, button.r * .03);
+      ctx.restore();
+    }
+
+    function drawPlayfieldDebugOverlay(w, h) {
+      ctx.save();
+      ctx.globalAlpha = .92;
+
+      ctx.fillStyle = "rgba(102, 227, 255, .10)";
+      ctx.strokeStyle = "rgba(102, 227, 255, .85)";
+      ctx.lineWidth = Math.max(2, w * .004);
+      ctx.beginPath();
+      playfieldPath(playfieldShape(), -Math.max(8, w * .014));
+      ctx.fill();
+      ctx.stroke();
+      drawDebugLabel("玉の可動域", sx(360), sy(78), "#66e3ff");
+
+      const block = lcdBlock();
+      ctx.fillStyle = "rgba(175, 92, 255, .18)";
+      ctx.strokeStyle = "rgba(200, 150, 255, .95)";
+      ctx.lineWidth = 2;
+      roundRect(block.left, block.top, block.right - block.left, block.bottom - block.top, 10);
+      ctx.fill();
+      ctx.stroke();
+      drawDebugLabel("液晶判定", (block.left + block.right) / 2, block.top - 14, "#d9b8ff");
+
+      pockets.forEach(p => {
+        const x = sx(p.x);
+        const y = sy(p.y);
+        const r = p.r / 720 * w;
+        const color = p.type === "start" ? "#66e3ff" : p.type === "attacker" ? "#ffd36a" : p.type === "out" ? "#94a3b8" : "#63f2a1";
+        ctx.fillStyle = p.type === "start" ? "rgba(102,227,255,.18)" : p.type === "attacker" ? "rgba(255,211,106,.18)" : p.type === "out" ? "rgba(148,163,184,.18)" : "rgba(99,242,161,.18)";
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        if (p.shape === "bowl" || p.type === "start") {
+          const bw = (p.w || 76) / 720 * w;
+          const bh = (p.h || 30) / 900 * h;
+          roundRect(x - bw / 2, y, bw, bh, 6);
+          ctx.fill();
+          ctx.stroke();
+          drawDebugLabel("START", x, y - 10, color);
+        } else if (p.shape === "semicircle" || p.type === "out") {
+          ctx.beginPath();
+          ctx.arc(x, y, r, Math.PI, Math.PI * 2);
+          ctx.lineTo(x + r, y + 8);
+          ctx.lineTo(x - r, y + 8);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          drawDebugLabel("OUT", x, y - r - 12, color);
+        } else {
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          drawDebugLabel(p.type.toUpperCase(), x, y - r - 12, color);
+        }
+      });
+
+      ctx.strokeStyle = "rgba(255, 111, 159, .95)";
+      ctx.fillStyle = "rgba(255, 111, 159, .14)";
+      ctx.lineWidth = 2;
+      const device = hitAreas.rightDevice;
+      roundRect(sx(device.x - device.w / 2), sy(device.y - device.h / 2), device.w / 720 * w, device.h / 900 * h, 12);
+      ctx.fill();
+      ctx.stroke();
+      drawDebugLabel("右役物", sx(device.x), sy(device.y - device.h / 2) - 12, "#ff8fb0");
+      ctx.restore();
+    }
+
+    function drawCabinetDebugOverlay(w, h) {
+      ctx.save();
+      const button = pushButtonShape();
+      ctx.fillStyle = "rgba(255, 111, 159, .16)";
+      ctx.strokeStyle = "rgba(255, 111, 159, .9)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(button.x, button.y, button.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      drawDebugLabel("PUSH範囲", button.x, button.y - button.r - 12, "#ff8fb0");
+
+      ctx.fillStyle = "rgba(15, 23, 42, .70)";
+      ctx.strokeStyle = "rgba(255,255,255,.24)";
+      roundRect(w - 158, h - 142, 138, 112, 8);
+      ctx.fill();
+      ctx.stroke();
+      drawDebugLabel("水色:玉の可動域", w - 89, h - 118, "#66e3ff");
+      drawDebugLabel("紫:液晶判定", w - 89, h - 94, "#d9b8ff");
+      drawDebugLabel("赤:役物範囲", w - 89, h - 70, "#ff8fb0");
+      ctx.restore();
+    }
+
+    function drawDebugLabel(text, x, y, color) {
+      if (state.pinEditor) return;
+      ctx.save();
+      ctx.font = `800 ${Math.max(10, canvas.clientWidth * .018)}px "Segoe UI", "Noto Sans JP", sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      const metrics = ctx.measureText(text);
+      const pad = 5;
+      const h = Math.max(18, canvas.clientWidth * .030);
+      ctx.fillStyle = "rgba(4, 8, 13, .78)";
+      roundRect(x - metrics.width / 2 - pad, y - h / 2, metrics.width + pad * 2, h, 5);
+      ctx.fill();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.fillText(text, x, y);
+      ctx.restore();
+    }
+
+    function roundRect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+    }
+
+    function loop(now) {
+      const dt = Math.min(32, now - lastTime);
+      lastTime = now;
+      update(dt);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    function updateHud() {
+      els.balls.textContent = state.balance > 0 ? `+${state.balance}` : `${state.balance}`;
+      els.payout.textContent = state.payout;
+      if (els.holds) els.holds.textContent = `${state.pendingStarts}/${maxHolds}`;
+      updateNailSettingUi();
+      els.spins.textContent = state.spins;
+      if (els.sinceJackpotSpins) els.sinceJackpotSpins.textContent = state.sinceJackpotSpins;
+      els.jackpots.textContent = state.jackpots;
+      els.mode.textContent = state.mode;
+      els.rounds.textContent = state.rounds;
+      els.rate.textContent = state.fired ? `${Math.round(state.wins / state.fired * 100)}%` : "0%";
+    }
+
+    function syncHandleUi() {
+      const rightShot = isJackpotActive();
+      const min = Number(els.power.min);
+      const max = Number(els.power.max);
+      const power = autoShotPower(rightShot);
+      els.power.value = power;
+      const t = (power - min) / (max - min);
+      const degrees = -45 + t * 135;
+      els.handleNeedle.style.transform = `translate(-50%, -92%) rotate(${degrees}deg)`;
+      els.handlePower.textContent = state.holdPause ? "HOLD" : rightShot ? "RIGHT" : "LEFT";
+    }
+
+    function syncAutoUi() {
+      els.fire.textContent = state.holdPause ? "AUTO HOLD" : state.autoFire ? "AUTO STOP" : "AUTO START";
+      els.launchHandle.classList.toggle("active", state.autoFire);
+      els.launchHandle.setAttribute("aria-pressed", state.autoFire ? "true" : "false");
+      els.speedMode.textContent = state.speedMode ? "SPEED x5 ON" : "SPEED x5 OFF";
+      els.speedMode.classList.toggle("active", state.speedMode);
+      els.speedMode.setAttribute("aria-pressed", state.speedMode ? "true" : "false");
+      syncHandleUi();
+    }
+
+    function fireIntervalMs() {
+      return state.speedMode ? 110 : 550;
+    }
+
+    function toggleLcdZoom() {
+      const zoomed = els.centerScreen.classList.toggle("zoomed");
+      els.centerScreen.setAttribute("aria-expanded", zoomed ? "true" : "false");
+      if (!zoomed) syncLcdDomToHitArea();
+    }
+
+    function message(text) {
+      els.message.textContent = text;
+    }
+
+    function addLog(html) {
+      const p = document.createElement("p");
+      p.innerHTML = html;
+      els.log.prepend(p);
+      while (els.log.children.length > 28) els.log.lastElementChild.remove();
+    }
+
+    function pauseAutoForHold() {
+      if (!state.autoFire || state.holdPause || isJackpotActive()) return;
+      state.holdPause = true;
+      clearInterval(state.autoTimer);
+      state.autoTimer = null;
+      message("保留満タン AUTO一時停止");
+      syncAutoUi();
+    }
+
+    function resumeAutoFromHold() {
+      if (!state.autoFire || !state.holdPause || state.pendingStarts >= maxHolds || isJackpotActive()) return;
+      state.holdPause = false;
+      clearInterval(state.autoTimer);
+      spawnBall();
+      state.autoTimer = setInterval(spawnBall, fireIntervalMs());
+      syncAutoUi();
+    }
+
+    function startAutoFire() {
+      if (state.autoFire) return;
+      state.autoFire = true;
+      state.holdPause = false;
+      clearInterval(state.autoTimer);
+      spawnBall();
+      if (state.holdPause) {
+        syncAutoUi();
+        return;
+      }
+      state.autoTimer = setInterval(() => {
+        spawnBall();
+      }, fireIntervalMs());
+      syncAutoUi();
+    }
+
+    function stopAutoFire() {
+      state.autoFire = false;
+      state.holdPause = false;
+      clearInterval(state.autoTimer);
+      state.autoTimer = null;
+      syncAutoUi();
+    }
+
+    function toggleAutoFire() {
+      if (state.autoFire) stopAutoFire();
+      else startAutoFire();
+    }
+
+    function toggleSpeedMode() {
+      state.speedMode = !state.speedMode;
+      if (state.autoFire) {
+        clearInterval(state.autoTimer);
+        state.autoFire = false;
+        startAutoFire();
+      } else {
+        syncAutoUi();
+      }
+    }
+
+    function togglePinEditor() {
+      state.pinEditor = !state.pinEditor;
+      state.draggingPin = false;
+      if (!state.pinEditor) state.selectedPin = -1;
+      syncPinEditorUi();
+    }
+
+    function syncPinEditorUi() {
+      if (!els.pinEdit) return;
+      els.pinEdit.textContent = state.pinEditor ? "PIN EDIT ON" : "PIN EDIT OFF";
+      els.pinEdit.classList.toggle("active", state.pinEditor);
+      els.pinEdit.setAttribute("aria-pressed", state.pinEditor ? "true" : "false");
+      if (els.multiMove) {
+        els.multiMove.textContent = state.multiMove ? "MULTI MOVE ON" : "MULTI MOVE OFF";
+        els.multiMove.classList.toggle("active", state.multiMove);
+        els.multiMove.setAttribute("aria-pressed", state.multiMove ? "true" : "false");
+      }
+      const pin = state.selectedPin >= 0 ? pins[state.selectedPin] : null;
+      if (pin && els.pinKind) els.pinKind.value = pin.kind || "normal";
+      if (els.pinInfo) {
+        const total = state.selectedPins.size + state.selectedHits.size;
+        els.pinInfo.textContent = pin
+          ? `PIN ${state.selectedPin} x${Math.round(pin.x)} y${Math.round(pin.y)}`
+          : total > 0 ? `SELECT ${total}` : "PIN -";
+      }
+    }
+
+    function toggleMultiMove() {
+      state.multiMove = !state.multiMove;
+      state.draggingPin = false;
+      state.dragMode = "none";
+      state.selectionRect = null;
+      syncPinEditorUi();
+    }
+
+    function ensureExtraHitOptions() {
+      if (!els.hitTarget) return;
+      [...els.hitTarget.options].forEach(option => {
+        if (option.value.startsWith("acrylic:") || option.value === "launch") option.remove();
+      });
+      const options = [];
+      acrylicParts.forEach((part, index) => options.push([`acrylic:${index}`, part.label || `ACRYLIC ${index + 1}`]));
+      options.forEach(([value, label]) => {
+        if ([...els.hitTarget.options].some(option => option.value === value)) return;
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        els.hitTarget.appendChild(option);
+      });
+    }
+
+    function selectedAcrylicIndexes() {
+      const indexes = new Set();
+      state.selectedHits.forEach(id => {
+        if (!id.startsWith("acrylic:")) return;
+        const index = Number(id.split(":")[1]);
+        if (Number.isInteger(index) && acrylicParts[index]) indexes.add(index);
+      });
+      const value = els.hitTarget?.value || "";
+      if (value.startsWith("acrylic:")) {
+        const index = Number(value.split(":")[1]);
+        if (Number.isInteger(index) && acrylicParts[index]) indexes.add(index);
+      }
+      return [...indexes].sort((a, b) => b - a);
+    }
+
+    function normalizeAcrylic(part) {
+      if (part.type === "curve") {
+        if (!Array.isArray(part.points) || part.points.length < 3) {
+          const x = part.x || 360;
+          const y = part.y || 450;
+          const w = part.w || 140;
+          const h = part.h || 70;
+          part.points = [
+            { x: x - w / 2, y },
+            { x, y: y - h },
+            { x: x + w / 2, y }
+          ];
+        }
+        part.thickness = Math.max(4, Number(part.thickness || part.h || 22));
+        updateAcrylicMetrics(part);
+        return part;
+      }
+      if (!Array.isArray(part.points) || part.points.length < 3) {
+        const left = (part.x || 0) - (part.w || 1) / 2;
+        const top = (part.y || 0) - (part.h || 1) / 2;
+        const right = left + (part.w || 1);
+        const bottom = top + (part.h || 1);
+        part.points = [
+          { x: left, y: top },
+          { x: right, y: top },
+          { x: right, y: bottom },
+          { x: left, y: bottom }
+        ];
+      }
+      updateAcrylicMetrics(part);
+      return part;
+    }
+
+    function updateAcrylicMetrics(part) {
+      const xs = part.points.map(point => point.x);
+      const ys = part.points.map(point => point.y);
+      const left = Math.min(...xs);
+      const right = Math.max(...xs);
+      const top = Math.min(...ys);
+      const bottom = Math.max(...ys);
+      part.x = Math.round((left + right) * 5) / 10;
+      part.y = Math.round((top + bottom) * 5) / 10;
+      part.w = Math.max(1, Math.round((right - left) * 10) / 10);
+      part.h = Math.max(1, Math.round((bottom - top) * 10) / 10);
+    }
+
+    function acrylicBounds(part) {
+      normalizeAcrylic(part);
+      return { x: part.x - part.w / 2, y: part.y - part.h / 2, w: part.w, h: part.h };
+    }
+
+    function acrylicCanvasPoints(part) {
+      normalizeAcrylic(part);
+      if (part.type === "curve") {
+        const p = part.points;
+        const sampled = [];
+        for (let i = 0; i <= 24; i++) {
+          const t = i / 24;
+          const a = (1 - t) * (1 - t);
+          const b = 2 * (1 - t) * t;
+          const c = t * t;
+          sampled.push({
+            x: sx(a * p[0].x + b * p[1].x + c * p[2].x),
+            y: sy(a * p[0].y + b * p[1].y + c * p[2].y)
+          });
+        }
+        return sampled;
+      }
+      return part.points.map(point => ({ x: sx(point.x), y: sy(point.y) }));
+    }
+
+    function acrylicControlCanvasPoints(part) {
+      normalizeAcrylic(part);
+      return part.points.map(point => ({ x: sx(point.x), y: sy(point.y) }));
+    }
+
+    function setAcrylicBounds(part, x, y, w, h) {
+      normalizeAcrylic(part);
+      if (part.type === "curve") {
+        const before = acrylicBounds(part);
+        const sxScale = w / Math.max(1, before.w);
+        const syScale = Math.max(.1, h / Math.max(1, before.h));
+        part.points = part.points.map(point => ({
+          x: x - w / 2 + (point.x - before.x) * sxScale,
+          y: y - h / 2 + (point.y - before.y) * syScale
+        }));
+        part.thickness = Math.max(4, Number(els.hitR?.value || part.thickness || 22));
+        updateAcrylicMetrics(part);
+        return;
+      }
+      const before = acrylicBounds(part);
+      const sxScale = w / Math.max(1, before.w);
+      const syScale = h / Math.max(1, before.h);
+      part.points = part.points.map(point => ({
+        x: x - w / 2 + (point.x - before.x) * sxScale,
+        y: y - h / 2 + (point.y - before.y) * syScale
+      }));
+      updateAcrylicMetrics(part);
+    }
+
+    function moveAcrylic(part, dx, dy) {
+      normalizeAcrylic(part);
+      part.points.forEach(point => {
+        point.x = Math.max(0, Math.min(720, Math.round((point.x + dx) * 10) / 10));
+        point.y = Math.max(0, Math.min(900, Math.round((point.y + dy) * 10) / 10));
+      });
+      updateAcrylicMetrics(part);
+    }
+
+    function pointInPolygon(point, polygon) {
+      let inside = false;
+      for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        const a = polygon[i];
+        const b = polygon[j];
+        if (((a.y > point.y) !== (b.y > point.y)) && point.x < (b.x - a.x) * (point.y - a.y) / ((b.y - a.y) || .0001) + a.x) inside = !inside;
+      }
+      return inside;
+    }
+
+    function hitTargetSpec() {
+      const value = els.hitTarget?.value || "lcd";
+      if (value.startsWith("acrylic:")) {
+        const index = Number(value.split(":")[1]);
+        const part = normalizeAcrylic(acrylicParts[index]);
+        return { id: value, obj: part, shape: part.type === "curve" ? "curve" : "poly", anchor: "center", label: part.label || value };
+      }
+      if (value.startsWith("pocket:")) {
+        const index = Number(value.split(":")[1]);
+        return { id: value, obj: pockets[index], shape: "circle", label: pockets[index]?.type || value };
+      }
+      if (value === "rightDevice") return { id: value, obj: hitAreas.rightDevice, shape: "rect", anchor: "center", label: "rightDevice" };
+      if (value === "windmill") return { id: value, obj: hitAreas.windmill, shape: "circle", label: "windmill" };
+      if (value === "launch" || value === "launchLeft" || value === "launchRight") return { id: "launch", obj: hitAreas.launch, shape: "circle", label: "launch" };
+      if (value === "push") return { id: value, obj: hitAreas.push, shape: "circle", label: "push" };
+      if (value === "handle") return { id: value, obj: hitAreas.handle, shape: "circle", label: "handle" };
+      return { id: "lcd", obj: hitAreas.lcd, shape: "rect", anchor: "topLeft", label: "lcd" };
+    }
+
+    function allHitTargetSpecs() {
+      return [
+        { id: "lcd", obj: hitAreas.lcd, shape: "rect", anchor: "topLeft", label: "lcd" },
+        ...pockets.map((pocket, index) => ({ id: `pocket:${index}`, obj: pocket, shape: "circle", label: pocket.type })),
+        { id: "rightDevice", obj: hitAreas.rightDevice, shape: "rect", anchor: "center", label: "rightDevice" },
+        { id: "windmill", obj: hitAreas.windmill, shape: "circle", label: "windmill" },
+        { id: "launch", obj: hitAreas.launch, shape: "circle", label: "launch" },
+        ...acrylicParts.map((part, index) => {
+          const obj = normalizeAcrylic(part);
+          return { id: `acrylic:${index}`, obj, shape: obj.type === "curve" ? "curve" : "poly", anchor: "center", label: part.label || `A${index + 1}` };
+        }),
+        { id: "push", obj: hitAreas.push, shape: "circle", label: "push" },
+        { id: "handle", obj: hitAreas.handle, shape: "circle", label: "handle" }
+      ];
+    }
+
+    function hitRectBounds(spec) {
+      if (spec.shape === "poly" || spec.shape === "curve") return acrylicBounds(spec.obj);
+      if (spec.anchor === "center") {
+        return {
+          x: spec.obj.x - spec.obj.w / 2,
+          y: spec.obj.y - spec.obj.h / 2,
+          w: spec.obj.w,
+          h: spec.obj.h
+        };
+      }
+      return { x: spec.obj.x, y: spec.obj.y, w: spec.obj.w, h: spec.obj.h };
+    }
+
+    function hitCenter(spec) {
+      if (spec.shape === "circle" || spec.anchor === "center") return { x: spec.obj.x, y: spec.obj.y };
+      return { x: spec.obj.x + spec.obj.w / 2, y: spec.obj.y + spec.obj.h / 2 };
+    }
+
+    function findHitAt(point) {
+      const specs = allHitTargetSpecs();
+      for (let i = specs.length - 1; i >= 0; i--) {
+        const spec = specs[i];
+        if (spec.shape === "circle") {
+          if (Math.hypot(point.x - spec.obj.x, point.y - spec.obj.y) <= spec.obj.r + 8) return spec;
+        } else if (spec.shape === "poly") {
+          if (pointInPolygon(point, spec.obj.points)) return spec;
+        } else if (spec.shape === "curve") {
+          const points = acrylicCanvasPoints(spec.obj);
+          for (let j = 0; j < points.length - 1; j++) {
+            const a = { x: points[j].x / canvas.clientWidth * 720, y: points[j].y / canvas.clientHeight * 900 };
+            const b = { x: points[j + 1].x / canvas.clientWidth * 720, y: points[j + 1].y / canvas.clientHeight * 900 };
+            const hit = nearestPointOnSegment(point.x, point.y, a.x, a.y, b.x, b.y);
+            if (hit.dist <= Math.max(10, (spec.obj.thickness || 22) / 2 + 8)) return spec;
+          }
+        } else {
+          const box = hitRectBounds(spec);
+          if (point.x >= box.x && point.x <= box.x + box.w && point.y >= box.y && point.y <= box.y + box.h) return spec;
+        }
+      }
+      return null;
+    }
+
+    function findAcrylicCornerAt(point) {
+      const active = [...state.selectedHits]
+        .map(id => allHitTargetSpecs().find(spec => spec.id === id))
+        .filter(spec => spec?.shape === "poly" || spec?.shape === "curve");
+      for (const spec of active) {
+        normalizeAcrylic(spec.obj);
+        for (let i = 0; i < spec.obj.points.length; i++) {
+          const corner = spec.obj.points[i];
+          if (Math.hypot(point.x - corner.x, point.y - corner.y) <= 12) return { spec, index: i };
+        }
+      }
+      return null;
+    }
+
+    function normalizedRect(rect) {
+      const x = Math.min(rect.x1, rect.x2);
+      const y = Math.min(rect.y1, rect.y2);
+      return { x, y, w: Math.abs(rect.x2 - rect.x1), h: Math.abs(rect.y2 - rect.y1) };
+    }
+
+    function pointInRect(point, rect) {
+      return point.x >= rect.x && point.x <= rect.x + rect.w && point.y >= rect.y && point.y <= rect.y + rect.h;
+    }
+
+    function clearMultiSelection() {
+      state.selectedPins.clear();
+      state.selectedHits.clear();
+    }
+
+    function captureDragOrigins() {
+      return {
+        pins: [...state.selectedPins].map(index => ({ index, x: pins[index]?.x || 0, y: pins[index]?.y || 0 })),
+        hits: [...state.selectedHits].map(id => {
+          const spec = allHitTargetSpecs().find(item => item.id === id);
+          return spec ? {
+            id,
+            x: spec.obj.x,
+            y: spec.obj.y,
+            points: (spec.shape === "poly" || spec.shape === "curve") ? spec.obj.points.map(point => ({ ...point })) : null
+          } : null;
+        }).filter(Boolean)
+      };
+    }
+
+    function moveSelectionFromOrigins(dx, dy) {
+      state.dragOrigins.pins.forEach(origin => {
+        if (!pins[origin.index]) return;
+        pins[origin.index].x = Math.max(0, Math.min(720, Math.round((origin.x + dx) * 10) / 10));
+        pins[origin.index].y = Math.max(0, Math.min(900, Math.round((origin.y + dy) * 10) / 10));
+      });
+      state.dragOrigins.hits.forEach(origin => {
+        const spec = allHitTargetSpecs().find(item => item.id === origin.id);
+        if (!spec) return;
+        if ((spec.shape === "poly" || spec.shape === "curve") && origin.points) {
+          spec.obj.points = origin.points.map(point => ({
+            x: Math.max(0, Math.min(720, Math.round((point.x + dx) * 10) / 10)),
+            y: Math.max(0, Math.min(900, Math.round((point.y + dy) * 10) / 10))
+          }));
+          updateAcrylicMetrics(spec.obj);
+          return;
+        }
+        spec.obj.x = Math.max(0, Math.min(720, Math.round((origin.x + dx) * 10) / 10));
+        spec.obj.y = Math.max(0, Math.min(900, Math.round((origin.y + dy) * 10) / 10));
+      });
+      syncHitEditorUi();
+      syncLcdDomToHitArea();
+      syncCabinetPartsToHitAreas();
+    }
+
+    function nudgeSelection(dx, dy) {
+      if (state.selectedPins.size + state.selectedHits.size <= 0) return;
+      state.dragOrigins = captureDragOrigins();
+      moveSelectionFromOrigins(dx, dy);
+      state.dragOrigins = null;
+      syncPinEditorUi();
+    }
+
+    function finishSelectionRect() {
+      if (!state.selectionRect) return;
+      const rect = normalizedRect(state.selectionRect);
+      clearMultiSelection();
+      pins.forEach((pin, index) => {
+        if (pointInRect(pin, rect)) state.selectedPins.add(index);
+      });
+      allHitTargetSpecs().forEach(spec => {
+        if (pointInRect(hitCenter(spec), rect)) state.selectedHits.add(spec.id);
+      });
+      if (state.selectedPins.size > 0) state.selectedPin = [...state.selectedPins][0];
+      else state.selectedPin = -1;
+      state.selectionRect = null;
+      syncPinEditorUi();
+    }
+
+    function setHitOutput(input, output) {
+      if (input && output) output.textContent = input.value;
+    }
+
+    function lockLcdAspect(changedId = "hitW") {
+      const lcd = hitAreas.lcd;
+      if (!lcd) return;
+      if (changedId === "hitH") {
+        lcd.h = Math.max(1, Math.round(lcd.h));
+        lcd.w = Math.max(1, Math.round(lcd.h * 4 / 3));
+      } else {
+        lcd.w = Math.max(1, Math.round(lcd.w));
+        lcd.h = Math.max(1, Math.round(lcd.w * 3 / 4));
+      }
+    }
+
+    function syncHitEditorUi() {
+      const spec = hitTargetSpec();
+      if (!spec.obj || !els.hitX) return;
+      const isCircle = spec.shape === "circle";
+      const isCurve = spec.shape === "curve";
+      els.hitX.value = Math.round(spec.obj.x ?? 0);
+      els.hitY.value = Math.round(spec.obj.y ?? 0);
+      els.hitR.value = Math.round(isCurve ? spec.obj.thickness ?? 22 : spec.obj.r ?? 0);
+      els.hitW.value = Math.round(spec.obj.w ?? 0);
+      els.hitH.value = Math.round(spec.obj.h ?? 0);
+      els.hitR.disabled = !isCircle && !isCurve;
+      els.hitW.disabled = isCircle;
+      els.hitH.disabled = isCircle;
+      setHitOutput(els.hitX, els.hitXValue);
+      setHitOutput(els.hitY, els.hitYValue);
+      setHitOutput(els.hitR, els.hitRValue);
+      setHitOutput(els.hitW, els.hitWValue);
+      setHitOutput(els.hitH, els.hitHValue);
+    }
+
+    function applyHitEditorValue(changedId = "") {
+      const spec = hitTargetSpec();
+      if (!spec.obj) return;
+      spec.obj.x = Number(els.hitX?.value || spec.obj.x || 0);
+      spec.obj.y = Number(els.hitY?.value || spec.obj.y || 0);
+      if (spec.shape === "circle") {
+        spec.obj.r = Math.max(1, Number(els.hitR?.value || spec.obj.r || 1));
+      } else if (spec.shape === "poly" || spec.shape === "curve") {
+        setAcrylicBounds(
+          spec.obj,
+          Number(els.hitX?.value || spec.obj.x || 0),
+          Number(els.hitY?.value || spec.obj.y || 0),
+          Math.max(1, Number(els.hitW?.value || spec.obj.w || 1)),
+          Math.max(1, Number(els.hitH?.value || spec.obj.h || 1))
+        );
+      } else {
+        spec.obj.w = Math.max(1, Number(els.hitW?.value || spec.obj.w || 1));
+        spec.obj.h = Math.max(1, Number(els.hitH?.value || spec.obj.h || 1));
+        if (spec.id === "lcd") lockLcdAspect(changedId);
+      }
+      syncLcdDomToHitArea();
+      syncCabinetPartsToHitAreas();
+    }
+
+    function boardCssMetrics() {
+      const mobile = window.matchMedia("(max-width: 560px)").matches;
+      const topInset = mobile ? 104 : 96;
+      const heightInset = mobile ? 116 : 108;
+      return { topInset, heightInset };
+    }
+
+    function syncLcdDomToHitArea() {
+      if (!els.centerScreen || els.centerScreen.classList.contains("zoomed")) return;
+      const lcd = hitAreas.lcd;
+      const { topInset, heightInset } = boardCssMetrics();
+      els.centerScreen.style.left = `calc(12px + (100% - 24px) * ${lcd.x} / 720)`;
+      els.centerScreen.style.top = `calc(${topInset}px + (100% - ${heightInset}px) * ${lcd.y} / 900)`;
+      els.centerScreen.style.width = `calc((100% - 24px) * ${lcd.w} / 720)`;
+      els.centerScreen.style.height = `calc((100% - ${heightInset}px) * ${lcd.h} / 900)`;
+    }
+
+    function syncCabinetPartsToHitAreas() {
+      if (!els.launchHandle) return;
+      const guard = hitAreas.handle;
+      const { topInset, heightInset } = boardCssMetrics();
+      const size = Math.max(32, guard.r * 2);
+      els.launchHandle.style.left = `calc(12px + (100% - 24px) * ${guard.x} / 720 - (100% - 24px) * ${size / 2} / 720)`;
+      els.launchHandle.style.top = `calc(${topInset}px + (100% - ${heightInset}px) * ${guard.y} / 900 - (100% - 24px) * ${size / 2} / 720)`;
+      els.launchHandle.style.width = `calc((100% - 24px) * ${size} / 720)`;
+      els.launchHandle.style.right = "auto";
+      els.launchHandle.style.bottom = "auto";
+    }
+
+    function boardPointFromEvent(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: Math.max(0, Math.min(720, (event.clientX - rect.left) / rect.width * 720)),
+        y: Math.max(0, Math.min(900, (event.clientY - rect.top) / rect.height * 900))
+      };
+    }
+
+    function findPinAt(point) {
+      for (let i = pins.length - 1; i >= 0; i--) {
+        const pin = pins[i];
+        const hit = Math.max(10, pin.r + 8);
+        if (Math.hypot(point.x - pin.x, point.y - pin.y) <= hit) return i;
+      }
+      return -1;
+    }
+
+    function roundPin(pin) {
+      return {
+        x: Math.round(pin.x * 10) / 10,
+        y: Math.round(pin.y * 10) / 10,
+        r: fixedPinRadius,
+        kind: pin.kind || "normal"
+      };
+    }
+
+    function serializeLayout() {
+      return {
+        pins: pins.map(roundPin),
+        pockets: pockets.map(p => ({
+          x: Math.round(p.x * 10) / 10,
+          y: Math.round(p.y * 10) / 10,
+          r: Math.round(p.r * 10) / 10,
+          type: p.type,
+          label: p.label,
+          color: p.color
+        })),
+        hitAreas: JSON.parse(JSON.stringify(hitAreas))
+      };
+    }
+
+    function applyLayout(next) {
+      const nextPins = Array.isArray(next) ? next : next.pins;
+      if (!Array.isArray(nextPins)) throw new Error("JSON must include pins");
+      pins.length = 0;
+      nextPins.forEach(pin => {
+        if (!Number.isFinite(Number(pin.x)) || !Number.isFinite(Number(pin.y))) return;
+        pins.push({
+          x: Number(pin.x),
+          y: Number(pin.y),
+          r: fixedPinRadius,
+          kind: pin.kind || "normal"
+        });
+      });
+      if (Array.isArray(next.pockets)) {
+        next.pockets.forEach((pocket, index) => {
+          if (!pockets[index]) return;
+          if (Number.isFinite(Number(pocket.x))) pockets[index].x = Number(pocket.x);
+          if (Number.isFinite(Number(pocket.y))) pockets[index].y = Number(pocket.y);
+          if (Number.isFinite(Number(pocket.r))) pockets[index].r = Number(pocket.r);
+        });
+      }
+      if (next.hitAreas && typeof next.hitAreas === "object") {
+        Object.keys(hitAreas).forEach(key => {
+          if (!next.hitAreas[key]) return;
+          Object.assign(hitAreas[key], next.hitAreas[key]);
+        });
+        if (!next.hitAreas.launch && next.hitAreas.launchLeft) Object.assign(hitAreas.launch, next.hitAreas.launchLeft);
+      }
+      acrylicParts.length = 0;
+      ensureExtraHitOptions();
+      lockLcdAspect("hitW");
+      state.selectedPin = -1;
+      clearMultiSelection();
+      syncHitEditorUi();
+      syncLcdDomToHitArea();
+      syncCabinetPartsToHitAreas();
+    }
+
+    function copyPinJson() {
+      const text = JSON.stringify(serializeLayout(), null, 2);
+      if (els.pinJson) els.pinJson.value = text;
+      if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).catch(() => {});
+      addLog("LAYOUT JSON copied");
+    }
+
+    function applyPinJson() {
+      if (!els.pinJson?.value.trim()) return;
+      try {
+        const next = JSON.parse(els.pinJson.value);
+        applyLayout(next);
+        addLog(`LAYOUT JSON applied: ${pins.length} pins`);
+      } catch (error) {
+        addLog(`LAYOUT JSON error: ${error.message}`);
+      }
+    }
+
+    function saveDefaultLayout() {
+      try {
+        const text = JSON.stringify(serializeLayout());
+        localStorage.setItem(layoutStorageKey, text);
+        if (els.pinJson) els.pinJson.value = JSON.stringify(serializeLayout(), null, 2);
+        addLog("DEFAULT layout saved");
+      } catch (error) {
+        addLog(`DEFAULT save error: ${error.message}`);
+      }
+    }
+
+    function clearDefaultLayout() {
+      try {
+        localStorage.removeItem(layoutStorageKey);
+        addLog("DEFAULT layout cleared");
+      } catch (error) {
+        addLog(`DEFAULT clear error: ${error.message}`);
+      }
+    }
+
+    function addAcrylicPart() {
+      acrylicParts.length = 0;
+      ensureExtraHitOptions();
+      addLog("ACRYLIC disabled");
+    }
+
+    function addCurvePart() {
+      acrylicParts.length = 0;
+      ensureExtraHitOptions();
+      addLog("CURVE disabled");
+    }
+
+    function loadDefaultLayout() {
+      try {
+        const text = localStorage.getItem(layoutStorageKey);
+        if (!text) return;
+        applyLayout(JSON.parse(text));
+        addLog(`DEFAULT layout loaded: ${pins.length} pins`);
+      } catch (error) {
+        addLog(`DEFAULT load error: ${error.message}`);
+      }
+    }
+
+    function handlePinPointerDown(event) {
+      if (!state.pinEditor) return;
+      event.preventDefault();
+      const point = boardPointFromEvent(event);
+      if (state.multiMove) {
+        const pinIndex = findPinAt(point);
+        const corner = findAcrylicCornerAt(point);
+        if (corner) {
+          state.dragMode = "acrylicCorner";
+          state.acrylicCorner = corner;
+          canvas.setPointerCapture?.(event.pointerId);
+          return;
+        }
+        const hit = findHitAt(point);
+        const clickedSelectedPin = pinIndex >= 0 && state.selectedPins.has(pinIndex);
+        const clickedSelectedHit = hit && state.selectedHits.has(hit.id);
+        if (clickedSelectedPin || clickedSelectedHit) {
+          state.dragMode = "group";
+          state.dragStart = point;
+          state.dragOrigins = captureDragOrigins();
+          canvas.setPointerCapture?.(event.pointerId);
+          return;
+        }
+        if (!event.ctrlKey && !event.metaKey) clearMultiSelection();
+        if (pinIndex >= 0) {
+          state.selectedPins.add(pinIndex);
+          state.selectedPin = pinIndex;
+          state.dragMode = "group";
+          state.dragStart = point;
+          state.dragOrigins = captureDragOrigins();
+          canvas.setPointerCapture?.(event.pointerId);
+          syncPinEditorUi();
+          return;
+        }
+        if (hit) {
+          state.selectedHits.add(hit.id);
+          state.selectedPin = -1;
+          if (els.hitTarget) els.hitTarget.value = hit.id;
+          state.dragMode = "group";
+          state.dragStart = point;
+          state.dragOrigins = captureDragOrigins();
+          canvas.setPointerCapture?.(event.pointerId);
+          syncPinEditorUi();
+          syncHitEditorUi();
+          return;
+        }
+        state.dragMode = "select";
+        state.dragStart = point;
+        state.selectionRect = { x1: point.x, y1: point.y, x2: point.x, y2: point.y };
+        canvas.setPointerCapture?.(event.pointerId);
+        syncPinEditorUi();
+        return;
+      }
+      if (event.shiftKey) {
+        pins.push({ x: Math.round(point.x), y: Math.round(point.y), r: fixedPinRadius, kind: els.pinKind?.value || "normal" });
+        state.selectedPin = pins.length - 1;
+        clearMultiSelection();
+        state.selectedPins.add(state.selectedPin);
+        state.draggingPin = true;
+        canvas.setPointerCapture?.(event.pointerId);
+        syncPinEditorUi();
+        return;
+      }
+      state.selectedPin = findPinAt(point);
+      clearMultiSelection();
+      if (state.selectedPin >= 0) state.selectedPins.add(state.selectedPin);
+      state.draggingPin = state.selectedPin >= 0;
+      if (state.draggingPin) canvas.setPointerCapture?.(event.pointerId);
+      syncPinEditorUi();
+    }
+
+    function handlePinPointerMove(event) {
+      if (state.pinEditor && state.multiMove) {
+        if (!state.dragMode || state.dragMode === "none") return;
+        event.preventDefault();
+        const point = boardPointFromEvent(event);
+        if (state.dragMode === "acrylicCorner" && state.acrylicCorner?.spec?.obj) {
+          const part = state.acrylicCorner.spec.obj;
+          normalizeAcrylic(part);
+          part.points[state.acrylicCorner.index] = {
+            x: Math.max(0, Math.min(720, Math.round(point.x * 10) / 10)),
+            y: Math.max(0, Math.min(900, Math.round(point.y * 10) / 10))
+          };
+          updateAcrylicMetrics(part);
+          syncHitEditorUi();
+          return;
+        }
+        if (state.dragMode === "select" && state.selectionRect) {
+          state.selectionRect.x2 = point.x;
+          state.selectionRect.y2 = point.y;
+          return;
+        }
+        if (state.dragMode === "group" && state.dragStart && state.dragOrigins) {
+          moveSelectionFromOrigins(point.x - state.dragStart.x, point.y - state.dragStart.y);
+        }
+        return;
+      }
+      if (!state.pinEditor || !state.draggingPin || state.selectedPin < 0 || !pins[state.selectedPin]) return;
+      event.preventDefault();
+      const point = boardPointFromEvent(event);
+      pins[state.selectedPin].x = Math.round(point.x * 10) / 10;
+      pins[state.selectedPin].y = Math.round(point.y * 10) / 10;
+      syncPinEditorUi();
+    }
+
+    function stopPinDrag(event) {
+      if (!state.pinEditor) return;
+      if (state.multiMove && state.dragMode === "select") finishSelectionRect();
+      state.draggingPin = false;
+      state.dragMode = "none";
+      state.dragStart = null;
+      state.dragOrigins = null;
+      state.acrylicCorner = null;
+      if (event?.pointerId != null) canvas.releasePointerCapture?.(event.pointerId);
+    }
+
+    function deleteSelectedPin() {
+      if (!state.pinEditor) return;
+      const acrylicIndexes = selectedAcrylicIndexes();
+      if (acrylicIndexes.length > 0) {
+        acrylicIndexes.forEach(index => acrylicParts.splice(index, 1));
+        clearMultiSelection();
+        state.selectedPin = -1;
+        state.draggingPin = false;
+        state.acrylicCorner = null;
+        ensureExtraHitOptions();
+        if (els.hitTarget) els.hitTarget.value = "lcd";
+        syncHitEditorUi();
+        syncPinEditorUi();
+        addLog(`ACRYLIC deleted: ${acrylicIndexes.length}`);
+        return;
+      }
+      if (state.multiMove && state.selectedPins.size > 0) {
+        [...state.selectedPins].sort((a, b) => b - a).forEach(index => pins.splice(index, 1));
+        clearMultiSelection();
+        state.selectedPin = -1;
+        state.draggingPin = false;
+        addLog("PIN group deleted");
+        syncPinEditorUi();
+        return;
+      }
+      if (state.selectedPin < 0) return;
+      pins.splice(state.selectedPin, 1);
+      state.selectedPin = -1;
+      clearMultiSelection();
+      state.draggingPin = false;
+      addLog("PIN deleted");
+      syncPinEditorUi();
+    }
+
+    els.fire.addEventListener("click", toggleAutoFire);
+    els.speedMode.addEventListener("click", toggleSpeedMode);
+    els.pinEdit?.addEventListener("click", togglePinEditor);
+    els.multiMove?.addEventListener("click", toggleMultiMove);
+    els.pinCopy?.addEventListener("click", copyPinJson);
+    els.pinApply?.addEventListener("click", applyPinJson);
+    els.saveDefault?.addEventListener("click", saveDefaultLayout);
+    els.clearDefault?.addEventListener("click", clearDefaultLayout);
+    els.addAcrylic?.addEventListener("click", addAcrylicPart);
+    els.addCurve?.addEventListener("click", addCurvePart);
+    els.pinKind?.addEventListener("change", () => {
+      if (state.selectedPin >= 0 && pins[state.selectedPin]) pins[state.selectedPin].kind = els.pinKind.value;
+      syncPinEditorUi();
+    });
+    els.hitTarget?.addEventListener("change", syncHitEditorUi);
+    [els.hitX, els.hitY, els.hitR, els.hitW, els.hitH].forEach(input => {
+      input?.addEventListener("input", () => {
+        applyHitEditorValue(input.id);
+        syncHitEditorUi();
+      });
+    });
+    canvas.addEventListener("pointerdown", handlePinPointerDown);
+    canvas.addEventListener("pointermove", handlePinPointerMove);
+    canvas.addEventListener("pointerup", stopPinDrag);
+    canvas.addEventListener("pointercancel", stopPinDrag);
+    canvas.addEventListener("pointerleave", stopPinDrag);
+    window.addEventListener("keydown", event => {
+      if (!state.pinEditor) return;
+      if (state.multiMove && ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) {
+        event.preventDefault();
+        const step = event.shiftKey ? 10 : 1;
+        const dx = event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0;
+        const dy = event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0;
+        nudgeSelection(dx, dy);
+        return;
+      }
+      if (event.key === "Delete" || event.key === "Backspace") {
+        event.preventDefault();
+        deleteSelectedPin();
+      }
+    });
+    document.getElementById("down").addEventListener("click", () => {
+      syncHandleUi();
+    });
+    document.getElementById("up").addEventListener("click", () => {
+      syncHandleUi();
+    });
+    els.power.addEventListener("input", syncHandleUi);
+    els.nailSetting.addEventListener("input", () => {
+      updateNailSettingUi();
+      addLog(`釘設定${state.nailSetting}: 約${currentNailSetting().spinsPer250}回/250玉`);
+    });
+    els.launchHandle.addEventListener("click", toggleAutoFire);
+    els.centerScreen.addEventListener("click", toggleLcdZoom);
+    els.centerScreen.addEventListener("keydown", event => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      toggleLcdZoom();
+    });
+    els.launchHandle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggleAutoFire();
+        return;
+      }
+      if (event.key === "ArrowRight" || event.key === "ArrowUp" || event.key === "ArrowLeft" || event.key === "ArrowDown") event.preventDefault();
+    });
+    window.addEventListener("resize", () => {
+      fitCanvas();
+      syncLcdDomToHitArea();
+      syncCabinetPartsToHitAreas();
+    });
+
+    ensureExtraHitOptions();
+    setupPins();
+    fitCanvas();
+    rebuildStatusHud();
+    updateNailSettingUi();
+    syncAutoUi();
+    syncPinEditorUi();
+    syncHitEditorUi();
+    syncLcdDomToHitArea();
+    syncCabinetPartsToHitAreas();
+    updateHud();
+    addLog("スペック: 1/400、初当たり5R、RUSH中10R固定");
+    addLog("AUTOで連続発射。通常は左ルート、当たり中は右打ち。");
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
+
+
+
