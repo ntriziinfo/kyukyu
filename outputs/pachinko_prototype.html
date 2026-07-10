@@ -54,9 +54,14 @@
       position: relative;
       height: min(980px, calc(100vh - 20px));
       min-height: 760px;
+      transform-origin: center top;
+      transition: transform .24s ease, height .24s ease;
       border: 1px solid rgba(255, 255, 255, .22);
       border-radius: 42px 42px 28px 28px;
       background:
+        radial-gradient(ellipse at 50% 96%, rgba(255, 42, 58, .22), transparent 22%),
+        radial-gradient(ellipse at 12% 48%, rgba(255,255,255,.12), transparent 20%),
+        radial-gradient(ellipse at 88% 48%, rgba(255,255,255,.12), transparent 20%),
         radial-gradient(ellipse at 50% 40%, rgba(102, 227, 255, .14), transparent 42%),
         radial-gradient(ellipse at 50% 8%, rgba(255, 255, 255, .18), transparent 28%),
         linear-gradient(160deg, rgba(255, 255, 255, .12), transparent 24%),
@@ -79,7 +84,7 @@
     }
 
     .machine::before {
-      inset: 94px 16px 16px;
+      inset: 118px 52px 174px;
       border-radius: 48% 48% 44% 44% / 38% 38% 46% 46%;
       border: 1px solid rgba(210, 244, 255, .24);
       background:
@@ -93,9 +98,9 @@
     }
 
     .machine::after {
-      left: 14%;
-      right: 14%;
-      top: 112px;
+      left: 20%;
+      right: 20%;
+      top: 138px;
       height: 18%;
       border-radius: 50%;
       background: radial-gradient(ellipse at center, rgba(255, 255, 255, .22), transparent 72%);
@@ -157,10 +162,10 @@
 
     canvas {
       position: absolute;
-      inset: 96px 12px 12px;
-      width: calc(100% - 24px);
-      height: calc(100% - 108px);
-      border-radius: 40px 40px 24px 24px;
+      inset: 122px 62px 176px;
+      width: calc(100% - 124px);
+      height: calc(100% - 298px);
+      border-radius: 46% 46% 38% 38% / 34% 34% 44% 44%;
       background:
         radial-gradient(circle at center 42%, rgba(102, 227, 255, .10), transparent 34%),
         linear-gradient(#162334, #0b1118 70%);
@@ -171,12 +176,119 @@
       touch-action: none;
     }
 
+
+    .machine.overview canvas,
+    .machine.overview .screen {
+      transition: inset .24s ease, width .24s ease, height .24s ease, left .24s ease, top .24s ease;
+    }
+
+    .machine.board-zoom canvas {
+      inset: 96px 12px 12px;
+      width: calc(100% - 24px);
+      height: calc(100% - 108px);
+      border-radius: 40px 40px 24px 24px;
+    }
+
+    .machine.board-zoom .machine-part,
+    .machine.board-zoom .zoom-controls {
+      opacity: .10;
+      pointer-events: none;
+    }
+
+    .machine-part {
+      position: absolute;
+      pointer-events: none;
+      z-index: 2;
+      transition: opacity .22s ease;
+    }
+
+    .side-speaker {
+      top: 108px;
+      bottom: 156px;
+      width: 38px;
+      border-radius: 20px;
+      background:
+        repeating-linear-gradient(0deg, rgba(255,255,255,.18) 0 2px, transparent 2px 8px),
+        linear-gradient(180deg, rgba(255,255,255,.12), rgba(0,0,0,.52));
+      box-shadow: inset 0 0 0 3px rgba(0,0,0,.44), inset 0 0 18px rgba(102,227,255,.14);
+      opacity: .82;
+    }
+
+    .side-speaker.left { left: 10px; }
+    .side-speaker.right { right: 10px; }
+
+    .top-crown {
+      left: 8%;
+      right: 8%;
+      top: 6px;
+      height: 88px;
+      border-radius: 28px 28px 16px 16px;
+      background:
+        radial-gradient(circle at 18% 42%, rgba(255,219,84,.58), transparent 18%),
+        radial-gradient(circle at 82% 42%, rgba(255,73,96,.48), transparent 18%),
+        linear-gradient(180deg, rgba(255,255,255,.16), rgba(8,11,17,.92));
+      box-shadow: inset 0 0 0 4px rgba(255, 150, 40, .28), 0 8px 24px rgba(0,0,0,.42);
+      z-index: 1;
+    }
+
+    .lower-tray {
+      left: 7%;
+      right: 7%;
+      bottom: 18px;
+      height: 128px;
+      border-radius: 22px 22px 42px 42px;
+      background:
+        radial-gradient(ellipse at 50% 28%, rgba(255,255,255,.28), transparent 28%),
+        linear-gradient(180deg, rgba(255, 48, 62, .72), rgba(10, 9, 13, .95) 44%, rgba(0,0,0,.86));
+      box-shadow: inset 0 0 0 5px rgba(255,255,255,.06), 0 -5px 22px rgba(255, 45, 60, .22);
+      z-index: 1;
+    }
+
+    .ball-tray {
+      left: 24%;
+      right: 24%;
+      bottom: 78px;
+      height: 48px;
+      border-radius: 0 0 28px 28px;
+      background:
+        radial-gradient(ellipse at 50% 8%, rgba(255,255,255,.72), rgba(255,211,106,.28) 34%, transparent 62%),
+        linear-gradient(180deg, rgba(255,255,255,.12), rgba(0,0,0,.54));
+      box-shadow: inset 0 -8px 18px rgba(0,0,0,.44);
+      z-index: 3;
+    }
+
+    .zoom-controls {
+      position: absolute;
+      left: 18px;
+      bottom: 82px;
+      z-index: 7;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(84px, auto));
+      gap: 8px;
+      transition: opacity .22s ease;
+    }
+
+    .view-btn {
+      min-height: 34px;
+      border: 1px solid rgba(255,255,255,.22);
+      border-radius: 8px;
+      color: #f8fbff;
+      background: rgba(6,10,15,.78);
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .view-btn.active {
+      border-color: rgba(255,211,106,.72);
+      background: linear-gradient(180deg, #ffd36a, #c9701d);
+      color: #130b05;
+    }
     .launch-handle {
       position: absolute;
-      right: 22px;
-      bottom: 22px;
+      right: 16px;
+      bottom: 72px;
       z-index: 5;
-      width: clamp(112px, 17vw, 148px);
+      width: clamp(104px, 14vw, 136px);
       aspect-ratio: 1;
       border: 1px solid rgba(255, 211, 106, .38);
       border-radius: 50%;
@@ -281,6 +393,13 @@
       transform: none;
       cursor: zoom-in;
       transition: width .22s ease, height .22s ease, left .22s ease, top .22s ease, transform .22s ease, box-shadow .22s ease;
+    }
+
+    .machine.board-zoom .screen {
+      left: calc(12px + (100% - 24px) * 244 / 720);
+      top: calc(96px + (100% - 108px) * 318 / 900);
+      width: calc((100% - 24px) * 232 / 720);
+      height: calc((100% - 108px) * 174 / 900);
     }
 
     .machine .screen.zoomed {
@@ -632,8 +751,9 @@
       }
 
       canvas {
-        inset-top: 104px;
-        height: calc(100% - 116px);
+        inset: 112px 44px 148px;
+        width: calc(100% - 88px);
+        height: calc(100% - 260px);
       }
 
       .launch-handle {
@@ -643,9 +763,18 @@
       }
 
       .machine .screen {
-        top: calc(104px + (100% - 116px) * 318 / 900);
-        width: calc((100% - 24px) * 232 / 720);
+        left: calc(44px + (100% - 88px) * 244 / 720);
+        top: calc(112px + (100% - 260px) * 318 / 900);
+        width: calc((100% - 88px) * 232 / 720);
+        height: calc((100% - 260px) * 174 / 900);
         padding: 0;
+      }
+
+      .machine.board-zoom .screen {
+        left: calc(12px + (100% - 24px) * 244 / 720);
+        top: calc(96px + (100% - 108px) * 318 / 900);
+        width: calc((100% - 24px) * 232 / 720);
+        height: calc((100% - 108px) * 174 / 900);
       }
 
       .machine .screen.zoomed {
@@ -666,6 +795,15 @@
 <body>
   <main class="app">
     <section class="machine" id="machine">
+      <div class="machine-part top-crown"></div>
+      <div class="machine-part side-speaker left"></div>
+      <div class="machine-part side-speaker right"></div>
+      <div class="machine-part lower-tray"></div>
+      <div class="machine-part ball-tray"></div>
+      <div class="zoom-controls" aria-label="表示倍率">
+        <button class="view-btn active" id="viewOverview" type="button">全体</button>
+        <button class="view-btn" id="viewBoard" type="button">盤面</button>
+      </div>
       <div class="marquee">
         <h1>パチンコ救急隊</h1>
         <div class="status" aria-live="polite">
@@ -805,6 +943,8 @@
       nailSettingValue: document.getElementById("nailSettingValue"),
       fire: document.getElementById("fire"),
       speedMode: document.getElementById("speedMode"),
+      viewOverview: document.getElementById("viewOverview"),
+      viewBoard: document.getElementById("viewBoard"),
       pinEdit: document.getElementById("pinEdit"),
       multiMove: document.getElementById("multiMove"),
       pinKind: document.getElementById("pinKind"),
@@ -852,6 +992,7 @@
       autoFire: false,
       holdPause: false,
       speedMode: false,
+      boardZoom: false,
       rightDeviceOpen: false,
       nailSetting: 3,
       nailVariance: {},
@@ -952,10 +1093,10 @@
     const fixedPinRadius = 3;
     const physics = {
       ballMassG: 5,
-      gravity: .0056,
-      airDrag: .00062,
-      rollingDrag: .00135,
-      maxSpeed: 2.05,
+      gravity: .0047,
+      airDrag: .00078,
+      rollingDrag: .00165,
+      maxSpeed: 1.68,
       nailRestitution: .78,
       wallRestitution: .61,
       lcdRestitution: .56,
@@ -1277,8 +1418,8 @@
       balls.push({
         x: sx(launch.x),
         y: sy(launch.y),
-        vx: rightShot ? power * .010 : power * .0034,
-        vy: rightShot ? -power * .0035 : power * .0048,
+        vx: rightShot ? power * .0082 : power * .0028,
+        vy: rightShot ? -power * .0029 : power * .0039,
         r: Math.max(5, canvas.clientWidth * .0105),
         massG: physics.ballMassG,
         live: true,
@@ -3432,6 +3573,21 @@
       els.handlePower.textContent = state.holdPause ? "HOLD" : rightShot ? "RIGHT" : "LEFT";
     }
 
+    function syncMachineView() {
+      machine.classList.toggle("board-zoom", state.boardZoom);
+      machine.classList.toggle("overview", !state.boardZoom);
+      els.viewOverview?.classList.toggle("active", !state.boardZoom);
+      els.viewBoard?.classList.toggle("active", state.boardZoom);
+      fitCanvas();
+      syncLcdDomToHitArea();
+      syncCabinetPartsToHitAreas();
+    }
+
+    function setMachineView(boardZoom) {
+      state.boardZoom = boardZoom;
+      syncMachineView();
+    }
+
     function syncAutoUi() {
       els.fire.textContent = state.holdPause ? "AUTO HOLD" : state.autoFire ? "AUTO STOP" : "AUTO START";
       els.launchHandle.classList.toggle("active", state.autoFire);
@@ -4286,6 +4442,8 @@
 
     els.fire.addEventListener("click", toggleAutoFire);
     els.speedMode.addEventListener("click", toggleSpeedMode);
+    els.viewOverview?.addEventListener("click", () => setMachineView(false));
+    els.viewBoard?.addEventListener("click", () => setMachineView(true));
     els.pinEdit?.addEventListener("click", togglePinEditor);
     els.multiMove?.addEventListener("click", toggleMultiMove);
     els.pinCopy?.addEventListener("click", copyPinJson);
@@ -4360,7 +4518,7 @@
     ensureExtraHitOptions();
     setupPins();
     setupDefaultAcrylicParts();
-    fitCanvas();
+    syncMachineView();
     rebuildStatusHud();
     updateNailSettingUi();
     syncAutoUi();
@@ -4375,9 +4533,4 @@
   </script>
 </body>
 </html>
-
-
-
-
-
 
