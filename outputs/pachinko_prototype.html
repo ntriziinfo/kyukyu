@@ -1252,30 +1252,6 @@
         },
         {
           type: "curve",
-          label: "ステージ左返し",
-          thickness: 16,
-          points: [{ x: 292, y: 704 }, { x: 318, y: 724 }, { x: 344, y: 730 }]
-        },
-        {
-          type: "curve",
-          label: "ステージ右返し",
-          thickness: 16,
-          points: [{ x: 428, y: 704 }, { x: 402, y: 724 }, { x: 376, y: 730 }]
-        },
-        {
-          type: "curve",
-          label: "ヘソ左肩",
-          thickness: 12,
-          points: [{ x: 316, y: 742 }, { x: 336, y: 752 }, { x: 350, y: 754 }]
-        },
-        {
-          type: "curve",
-          label: "ヘソ右肩",
-          thickness: 12,
-          points: [{ x: 404, y: 742 }, { x: 384, y: 752 }, { x: 370, y: 754 }]
-        },
-        {
-          type: "curve",
           label: "右打ちレール",
           thickness: 26,
           points: [{ x: 642, y: 94 }, { x: 690, y: 328 }, { x: 640, y: 560 }]
@@ -1297,44 +1273,15 @@
           points: [{ x: 582, y: 160 }, { x: 622, y: 184 }, { x: 602, y: 536 }, { x: 554, y: 514 }]
         }
       ].forEach(part => acrylicParts.push(normalizeAcrylic(part)));
-      migrateOpenHesoAcrylic();
+      removeHesoAcrylicHelpers();
       ensureExtraHitOptions();
     }
 
-    function migrateOpenHesoAcrylic() {
+    function removeHesoAcrylicHelpers() {
+      const blocked = new Set(["ステージ受け", "ヘソ寄せ", "ステージ左返し", "ステージ右返し", "ヘソ左肩", "ヘソ右肩"]);
       for (let i = acrylicParts.length - 1; i >= 0; i--) {
-        const label = acrylicParts[i].label || "";
-        if (label === "ステージ受け" || label === "ヘソ寄せ") acrylicParts.splice(i, 1);
+        if (blocked.has(acrylicParts[i].label || "")) acrylicParts.splice(i, 1);
       }
-      const has = label => acrylicParts.some(part => part.label === label);
-      [
-        {
-          type: "curve",
-          label: "ステージ左返し",
-          thickness: 16,
-          points: [{ x: 292, y: 704 }, { x: 318, y: 724 }, { x: 344, y: 730 }]
-        },
-        {
-          type: "curve",
-          label: "ステージ右返し",
-          thickness: 16,
-          points: [{ x: 428, y: 704 }, { x: 402, y: 724 }, { x: 376, y: 730 }]
-        },
-        {
-          type: "curve",
-          label: "ヘソ左肩",
-          thickness: 12,
-          points: [{ x: 316, y: 742 }, { x: 336, y: 752 }, { x: 350, y: 754 }]
-        },
-        {
-          type: "curve",
-          label: "ヘソ右肩",
-          thickness: 12,
-          points: [{ x: 404, y: 742 }, { x: 384, y: 752 }, { x: 370, y: 754 }]
-        }
-      ].forEach(part => {
-        if (!has(part.label)) acrylicParts.push(normalizeAcrylic(part));
-      });
     }
 
     function fitCanvas() {
@@ -1411,9 +1358,6 @@
       state.balance--;
       const rightShot = isJackpotActive();
       const power = autoShotPower(rightShot);
-      if (!rightShot) state.startMeter += currentNailSetting().startPerBall * startRouteCompensation;
-      const startEligible = !rightShot && state.startMeter >= 1;
-      if (startEligible) state.startMeter -= 1;
       const launch = hitAreas.launch;
       balls.push({
         x: sx(launch.x),
@@ -1427,8 +1371,7 @@
         age: 0,
         angle: Math.random() * Math.PI * 2,
         trail: [],
-        rightShot,
-        startEligible
+        rightShot
       });
       updateHud();
     }
@@ -1869,9 +1812,9 @@
       } else if (ball.y < sy(650)) {
         target = { x: sx(250), y: sy(628), force: .00030 };
       } else if (ball.y < sy(735)) {
-        target = { x: sx(ball.startEligible ? 366 : 344), y: sy(742), force: ball.startEligible ? .00046 : .00022 };
+        target = { x: sx(344), y: sy(742), force: .00018 };
       } else {
-        target = { x: sx(360), y: sy(ball.startEligible ? 772 : 812), force: ball.startEligible ? .00072 : .00020 };
+        target = { x: sx(360), y: sy(812), force: .00014 };
       }
       const dx = target.x - ball.x;
       const dy = target.y - ball.y;
@@ -1899,7 +1842,7 @@
         const dw = Math.hypot(dxw, dyw);
         if (dw < sx(78) && dw > 1) {
           const spin = Math.sin(performance.now() / 260);
-          const rightBias = ball.startEligible ? .0022 : .0008;
+          const rightBias = .0007;
           const sideKick = dxw < 0 ? .0005 : .0009;
           ball.vx += (rightBias + sideKick + spin * .0012) * dt;
           ball.vy += .0014 * dt;
@@ -1907,8 +1850,8 @@
         }
       }
       if (!ball.rightShot && ball.y > sy(500) && ball.y < sy(650) && ball.x > sx(62) && ball.x < sx(300)) {
-        if (!ball.leftLcdSplitSide) ball.leftLcdSplitSide = Math.random() < (ball.startEligible ? .72 : .46) ? 1 : -1;
-        const splitX = ball.leftLcdSplitSide > 0 ? sx(ball.startEligible ? 358 : 314) : sx(148);
+        if (!ball.leftLcdSplitSide) ball.leftLcdSplitSide = Math.random() < .46 ? 1 : -1;
+        const splitX = ball.leftLcdSplitSide > 0 ? sx(314) : sx(148);
         ball.vx += (splitX - ball.x) * .000018 * dt;
         ball.vy += .0024 * dt;
         if (Math.abs(ball.x - sx(220)) < sx(42)) {
@@ -1916,7 +1859,7 @@
         }
       }
       if (!ball.rightShot && ball.y > sy(520)) {
-        const laneX = ball.y < sy(690) ? sx(ball.startEligible ? 342 : 304) : sx(356);
+        const laneX = ball.y < sy(690) ? sx(304) : sx(356);
         ball.vx += (laneX - ball.x) * .000008 * dt;
       }
       if (!ball.rightShot && ball.y > sy(690) && ball.y < sy(775) && Math.abs(ball.x - sx(360)) < sx(116)) {
@@ -1924,12 +1867,7 @@
         ball.vx += centerPull * .000012 * dt;
         ball.vy += .0018 * dt;
       }
-      if (!ball.rightShot && ball.startEligible && ball.y > sy(650) && ball.y < sy(798)) {
-        const hesoPull = sx(360) - ball.x;
-        ball.vx += hesoPull * .000046 * dt;
-        ball.vy += .0032 * dt;
-      }
-      if (!ball.rightShot && !ball.startEligible && ball.y > sy(790)) {
+      if (!ball.rightShot && ball.y > sy(790)) {
         if (!ball.hesoSpillSide) {
           state.spillFlip *= -1;
           ball.hesoSpillSide = ball.x < sx(330) ? 1 : state.spillFlip;
@@ -1945,10 +1883,6 @@
       if (!ball.rightShot && ball.x > sx(470) && ball.y > sy(640)) {
         ball.vx += (sx(360) - ball.x) * .000026 * dt;
         ball.vy += .0032 * dt;
-      }
-      if (ball.startEligible && ball.y > sy(500)) {
-        ball.vx *= .998;
-        ball.vy *= .996;
       }
       if (ball.rightShot) {
         if (ball.x < sx(540) && ball.y < sy(420)) {
@@ -4220,7 +4154,7 @@
       } else {
         setupDefaultAcrylicParts();
       }
-      migrateOpenHesoAcrylic();
+      removeHesoAcrylicHelpers();
       lockLcdAspect("hitW");
       state.selectedPin = -1;
       clearMultiSelection();
