@@ -790,6 +790,61 @@
         font-size: 36px;
       }
     }
+
+    /* Fixed playfield contract: resizing the browser may reveal scrollbars,
+       but it never changes physics coordinates or the nail gauge. */
+    html,
+    body {
+      overflow-x: auto;
+    }
+
+    .app {
+      width: 1224px;
+      min-width: 1224px;
+      grid-template-columns: 844px 360px;
+      align-items: start;
+    }
+
+    .machine {
+      width: 844px;
+      min-width: 844px;
+      height: 1198px;
+      min-height: 1198px;
+    }
+
+    .machine.board-zoom {
+      width: 744px;
+      min-width: 744px;
+      height: 1008px;
+      min-height: 1008px;
+    }
+
+    .machine.board-zoom .zoom-controls {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .machine canvas {
+      inset: 122px auto auto 62px;
+      width: 720px;
+      height: 900px;
+    }
+
+    .machine.board-zoom canvas {
+      inset: 96px auto auto 12px;
+      width: 720px;
+      height: 900px;
+    }
+
+    .machine .screen,
+    .machine.board-zoom .screen {
+      width: 308px;
+      height: 250px;
+    }
+
+    .side {
+      width: 360px;
+    }
   </style>
 </head>
 <body>
@@ -841,7 +896,7 @@
         <label class="setting-row">
           <span>釘設定</span>
           <input class="range" id="nailSetting" type="range" min="1" max="6" value="3" step="1" aria-label="釘設定">
-          <output id="nailSettingValue">3 / 20回</output>
+          <output id="nailSettingValue">17.9回/250玉・目標機械割95%</output>
         </label>
         <button class="main-btn" id="fire">AUTO START</button>
         <button class="speed-btn" id="speedMode" aria-pressed="false">SPEED x5 OFF</button>
@@ -990,12 +1045,12 @@
       feverUntil: 0,
       autoTimer: null,
       autoFire: false,
+      lastShotAt: 0,
       holdPause: false,
       speedMode: false,
       boardZoom: false,
       rightDeviceOpen: false,
       nailSetting: 3,
-      nailVariance: {},
       startMeter: 0,
       spillFlip: 1,
       pendingStarts: 0,
@@ -1078,38 +1133,40 @@
     }
 
     const maxHolds = 4;
+    // Long-run targets derived from the current game spec: 1/400 initial hit,
+    // 5R initial payout, 60%/75% ST100, 10R RUSH payout and 5 balls per START.
+    // One normal renewal cycle averages 486.4847 STARTs and 6447.3833 paid balls.
     const nailSettingTable = {
-      1: { spinsPer250: 21.0, startPerBall: 21.0 / 250 },
-      2: { spinsPer250: 23.1, startPerBall: 23.1 / 250 },
-      3: { spinsPer250: 25.3, startPerBall: 25.3 / 250 },
-      4: { spinsPer250: 27.4, startPerBall: 27.4 / 250 },
-      5: { spinsPer250: 30.5, startPerBall: 30.5 / 250 },
-      6: { spinsPer250: 34.4, startPerBall: 34.4 / 250 }
+      1: { machineRate: 80,  spinsPer250: 15.0909, hesoOpening: 0.0, roadBias: .044, hesoBias: .150 },
+      2: { machineRate: 90,  spinsPer250: 16.9773, hesoOpening: 0.8, roadBias: .046, hesoBias: .155 },
+      3: { machineRate: 95,  spinsPer250: 17.9205, hesoOpening: 1.6, roadBias: .048, hesoBias: .160 },
+      4: { machineRate: 101, spinsPer250: 19.0523, hesoOpening: 2.4, roadBias: .050, hesoBias: .165 },
+      5: { machineRate: 104, spinsPer250: 19.6182, hesoOpening: 3.2, roadBias: .052, hesoBias: .170 },
+      6: { machineRate: 110, spinsPer250: 20.7500, hesoOpening: 4.0, roadBias: .054, hesoBias: .175 }
     };
-    const startRouteCompensation = 1;
     const balls = [];
     const particles = [];
     const pins = [];
     const fixedPinRadius = 3;
     const physics = {
-      ballMassG: 5,
-      gravity: .0047,
-      airDrag: .00078,
-      rollingDrag: .00165,
-      maxSpeed: 1.68,
-      nailRestitution: .78,
-      wallRestitution: .61,
-      lcdRestitution: .56,
-      ballRestitution: .45,
-      randomNailScatter: .18
+      ballMassG: 5.5,
+      gravity: .0032,
+      airDrag: .00046,
+      rollingDrag: .00072,
+      maxSpeed: .88,
+      nailRestitution: .67,
+      wallRestitution: .54,
+      lcdRestitution: .50,
+      ballRestitution: .38,
+      randomNailScatter: .055
     };
     const pockets = [
-      { x: 360, y: 770, r: 12, type: "start", label: "START", color: "#66e3ff" },
+      { x: 360, y: 770, r: 18, type: "start", label: "START", color: "#66e3ff" },
       { x: 632, y: 568, r: 38, type: "attacker", label: "V", color: "#ffd36a" },
       { x: 360, y: 900, r: 72, shape: "semicircle", type: "out", label: "", color: "#8895a4" }
     ];
     const hitAreas = {
-      lcd: { x: 118, y: 166, w: 484, h: 363 },
+      lcd: { x: 206, y: 210, w: 308, h: 250 },
       rightDevice: { x: 642, y: 568, w: 72, h: 136 },
       windmill: { x: 76, y: 512, r: 24 },
       launch: { x: 54, y: 74, r: 18 },
@@ -1120,6 +1177,24 @@
     const layoutStorageKey = "pachinkoPrototypeDefaultLayoutV1";
 
     const symbols = ["1", "2", "3", "5", "7", "救", "急"];
+    const rescueBackgroundImage = new Image();
+    rescueBackgroundImage.src = "pachinko_rescue_background.png";
+    let rescueBackgroundReady = false;
+    rescueBackgroundImage.addEventListener("load", () => {
+      rescueBackgroundReady = true;
+    });
+    const rescueTitleImage = new Image();
+    rescueTitleImage.src = "pachinko_rescue_title.png";
+    let rescueTitleReady = false;
+    rescueTitleImage.addEventListener("load", () => {
+      rescueTitleReady = true;
+    });
+    const acrylicGuardImage = new Image();
+    acrylicGuardImage.src = "pachinko_acrylic_guard.png";
+    let acrylicGuardReady = false;
+    acrylicGuardImage.addEventListener("load", () => {
+      acrylicGuardReady = true;
+    });
     const ballImage = new Image();
     ballImage.src = "pachinko_ball.png";
     let ballImageReady = false;
@@ -1133,20 +1208,32 @@
       nailImageReady = true;
     });
     let lastTime = performance.now();
+    let physicsAccumulator = 0;
+    const fixedPhysicsStep = 1000 / 240;
     let spinLock = false;
 
     function setupPins() {
       pins.length = 0;
-      const add = (x, y, kind = "normal", r = 3.1) => pins.push({ x, y, r, kind });
+      const add = (x, y, kind = "normal", r = 3.1) => {
+        if (pins.some(pin => Math.hypot(pin.x - x, pin.y - y) < 18)) return;
+        pins.push({ x, y, r, kind });
+      };
       const line = (x1, y1, x2, y2, count, kind = "normal", r = 3.1) => {
-        for (let i = 0; i < count; i++) {
-          const t = count === 1 ? 0 : i / (count - 1);
+        const length = Math.hypot(x2 - x1, y2 - y1);
+        const safeCount = Math.min(count, Math.max(2, Math.floor(length / 30) + 1));
+        for (let i = 0; i < safeCount; i++) {
+          const t = safeCount === 1 ? 0 : i / (safeCount - 1);
           add(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t, kind, r);
         }
       };
       const curve = (points, count, kind = "normal", r = 3.1) => {
-        for (let i = 0; i < count; i++) {
-          const t = count === 1 ? 0 : i / (count - 1);
+        const length = points.slice(1).reduce((sum, point, index) => {
+          const previous = points[index];
+          return sum + Math.hypot(point.x - previous.x, point.y - previous.y);
+        }, 0);
+        const safeCount = Math.min(count, Math.max(2, Math.floor(length / 30) + 1));
+        for (let i = 0; i < safeCount; i++) {
+          const t = safeCount === 1 ? 0 : i / (safeCount - 1);
           const seg = Math.min(points.length - 2, Math.floor(t * (points.length - 1)));
           const local = t * (points.length - 1) - seg;
           const a = points[seg];
@@ -1154,79 +1241,85 @@
           add(a.x + (b.x - a.x) * local, a.y + (b.y - a.y) * local, kind, r);
         }
       };
-
-      // Real-machine inspired routes: left launch rail, warp entrance, windmill, yorikugi, doukugi, heso, and right-shot path.
-      curve([{ x: 48, y: 118 }, { x: 48, y: 214 }, { x: 54, y: 330 }, { x: 64, y: 456 }], 12, "warp", 2.7);
-      curve([{ x: 84, y: 132 }, { x: 82, y: 250 }, { x: 88, y: 374 }, { x: 112, y: 526 }], 12, "normal", 2.7);
-      curve([{ x: 118, y: 116 }, { x: 180, y: 130 }, { x: 246, y: 118 }, { x: 320, y: 144 }], 9, "spill", 2.6);
-      curve([{ x: 600, y: 116 }, { x: 538, y: 130 }, { x: 474, y: 118 }, { x: 400, y: 144 }], 9, "spill", 2.6);
-      line(236, 154, 124, 214, 6, "normal", 2.6);
-      line(484, 154, 596, 214, 6, "normal", 2.6);
-      line(104, 278, 58, 388, 7, "warp", 2.65);
-      line(142, 292, 92, 410, 7, "normal", 2.65);
-      line(116, 436, 60, 500, 5, "spill", 2.7);
-      line(132, 462, 92, 536, 5, "road", 2.75);
-      line(58, 548, 136, 552, 5, "road", 2.75);
-      line(112, 566, 206, 590, 6, "road", 2.75);
-      line(180, 600, 274, 632, 6, "road", 2.8);
-      line(254, 646, 336, 684, 6, "road", 2.8);
-      line(318, 690, 360, 718, 4, "road", 2.85);
-      line(96, 642, 54, 732, 5, "spill", 2.7);
-      line(156, 644, 108, 748, 6, "spill", 2.7);
-      line(224, 676, 176, 792, 6, "spill", 2.7);
-
-      line(282, 706, 340, 734, 5, "heso", 2.85);
-      line(438, 706, 380, 734, 5, "heso", 2.85);
-      add(326, 748, "heso", 3.05);
-      add(394, 748, "heso", 3.05);
-      add(346, 766, "heso", 2.95);
-      add(374, 766, "heso", 2.95);
-      line(304, 792, 336, 824, 4, "spill", 2.8);
-      line(416, 792, 384, 824, 4, "spill", 2.8);
-      add(342, 816, "spill", 2.8);
-      add(378, 816, "spill", 2.8);
-      line(232, 792, 304, 852, 5, "spill", 2.75);
-      line(488, 792, 416, 852, 5, "spill", 2.75);
-      line(236, 832, 320, 862, 6, "spill", 2.65);
-      line(484, 832, 400, 862, 6, "spill", 2.65);
-
-      curve([{ x: 626, y: 86 }, { x: 668, y: 176 }, { x: 682, y: 344 }, { x: 658, y: 512 }], 20, "hot", 2.8);
-      line(626, 518, 682, 590, 6, "hot", 2.8);
-      line(588, 526, 674, 592, 7, "attacker", 2.9);
-      line(638, 622, 512, 704, 9, "attacker", 2.9);
-      line(456, 742, 512, 704, 6, "attacker", 2.8);
-      line(556, 704, 640, 748, 7, "attacker", 2.8);
-
-      for (let row = 0; row < 8; row++) {
-        const y = 138 + row * 66;
-        const count = row % 2 ? 7 : 8;
-        const offset = row % 2 ? 40 : 18;
-        for (let col = 0; col < count; col++) {
-          const x = offset + col * 96;
-          const nearLcd = x > 100 && x < 620 && y > 132 && y < 548;
-          const nearStart = Math.hypot(x - 360, y - 790) < 104;
-          const leftRoute = x < 230 && y > 420 && y < 710;
-          const roadRoute = x > 190 && x < 350 && y > 600 && y < 760;
-          const hesoRoute = x > 250 && x < 470 && y > 690 && y < 850;
-          const onDevice = x > 590 && y > 490 && y < 650;
-          if (!nearLcd && !nearStart && !leftRoute && !roadRoute && !hesoRoute && !onDevice) add(x, y, "normal", 2.6);
+      const staggered = (x1, x2, y1, rows, stepX, stepY, evenKind = "normal", oddKind = "spill", r = 2.7) => {
+        for (let row = 0; row < rows; row++) {
+          const offset = row % 2 ? stepX / 2 : 0;
+          for (let x = x1 + offset; x <= x2; x += stepX) {
+            add(x, y1 + row * stepY, row % 2 ? oddKind : evenKind, r);
+          }
         }
+      };
+
+      // Generic modern P-machine gauge: a large center unit with distinct
+      // normal-shot (left), yori / michi / heso, and bonus-shot (right) routes.
+      // Coordinates are intentionally original rather than copied from one machine.
+
+      // Upper crown and the narrow normal-shot lane beside the center unit.
+      curve([{ x: 46, y: 112 }, { x: 46, y: 230 }, { x: 52, y: 356 }, { x: 66, y: 456 }], 15, "warp", 2.7);
+      curve([{ x: 116, y: 112 }, { x: 188, y: 126 }, { x: 264, y: 118 }, { x: 330, y: 146 }], 11, "spill", 2.65);
+      curve([{ x: 604, y: 112 }, { x: 532, y: 126 }, { x: 456, y: 118 }, { x: 390, y: 146 }], 11, "spill", 2.65);
+      line(252, 152, 126, 208, 8, "normal", 2.65);
+      line(468, 152, 594, 208, 8, "normal", 2.65);
+      add(70, 310, "normal", 2.7);
+      add(76, 352, "normal", 2.7);
+      add(82, 394, "normal", 2.7);
+      add(70, 438, "normal", 2.7);
+
+      // Extra staggered nails keep the narrow side corridors lively without
+      // introducing invisible guide forces or overlapping the fixed LCD.
+      for (let row = 0; row < 7; row++) {
+        add(row % 2 ? 194 : 180, 234 + row * 34, row % 2 ? "spill" : "normal", 2.65);
+        add(row % 2 ? 526 : 540, 234 + row * 34, row % 2 ? "hot" : "normal", 2.65);
       }
-      pins.push(
-        { x: 64, y: 574, r: 2.9, kind: "road" },
-        { x: 114, y: 574, r: 2.9, kind: "road" },
-        { x: 156, y: 616, r: 2.8, kind: "road" },
-        { x: 216, y: 638, r: 2.8, kind: "road" },
-        { x: 270, y: 664, r: 2.8, kind: "road" },
-        { x: 316, y: 692, r: 2.8, kind: "road" },
-        { x: 330, y: 716, r: 2.8, kind: "heso" },
-        { x: 390, y: 716, r: 2.8, kind: "heso" },
-        { x: 318, y: 748, r: 2.8, kind: "spill" },
-        { x: 402, y: 748, r: 2.8, kind: "spill" },
-        { x: 504, y: 692, r: 2.9, kind: "attacker" },
-        { x: 590, y: 692, r: 2.9, kind: "attacker" },
-        { x: 486, y: 668, r: 3.2, kind: "attacker" }
-      );
+
+      // Yori nails collect balls leaving the left side of the center frame.
+      curve([{ x: 130, y: 426 }, { x: 136, y: 486 }, { x: 158, y: 548 }, { x: 208, y: 590 }], 10, "spill", 2.8);
+      curve([{ x: 168, y: 444 }, { x: 174, y: 510 }, { x: 198, y: 570 }, { x: 250, y: 608 }], 10, "road", 2.85);
+      line(60, 548, 138, 558, 4, "road", 2.85);
+      line(78, 586, 166, 610, 5, "spill", 2.75);
+
+      // A broad apron below the center unit produces repeated left/right
+      // deflections before balls reach the yori and michi channels.
+      staggered(194, 526, 486, 5, 40, 38, "road", "spill", 2.7);
+
+      // Michi nails form a shallow two-bank channel toward the start pocket.
+      curve([{ x: 60, y: 600 }, { x: 120, y: 650 }, { x: 220, y: 690 }, { x: 342, y: 730 }], 12, "road", 2.9);
+      curve([{ x: 118, y: 638 }, { x: 194, y: 664 }, { x: 266, y: 706 }, { x: 336, y: 752 }], 11, "spill", 2.8);
+      line(82, 646, 50, 742, 7, "spill", 2.7);
+      line(154, 678, 118, 776, 7, "spill", 2.7);
+      line(218, 716, 184, 810, 7, "spill", 2.7);
+
+      // Heso approach, entrance nails, and the lower spill fan.
+      line(260, 700, 342, 738, 6, "heso", 2.95);
+      line(460, 700, 378, 738, 6, "heso", 2.95);
+      add(346, 758, "heso", 3.05);
+      add(374, 758, "heso", 3.05);
+      add(326, 778, "spill", 2.9);
+      add(394, 778, "spill", 2.9);
+      line(300, 802, 338, 838, 5, "spill", 2.8);
+      line(420, 802, 382, 838, 5, "spill", 2.8);
+      line(232, 790, 302, 856, 6, "spill", 2.75);
+      line(488, 790, 418, 856, 6, "spill", 2.75);
+      line(222, 842, 320, 870, 7, "spill", 2.65);
+      line(498, 842, 400, 870, 7, "spill", 2.65);
+
+      // Dedicated right-shot rail, gate approach, and attacker fan.
+      curve([{ x: 624, y: 86 }, { x: 668, y: 174 }, { x: 682, y: 342 }, { x: 658, y: 500 }], 24, "hot", 2.85);
+      curve([{ x: 594, y: 118 }, { x: 630, y: 232 }, { x: 640, y: 394 }, { x: 618, y: 504 }], 16, "hot", 2.75);
+      line(620, 514, 680, 582, 7, "hot", 2.9);
+      line(584, 526, 674, 590, 8, "attacker", 3.0);
+      line(650, 620, 516, 706, 11, "attacker", 2.95);
+      line(456, 744, 516, 706, 6, "attacker", 2.85);
+      line(548, 706, 642, 754, 8, "attacker", 2.85);
+
+      // Sparse lower-field scatter nails; routes above remain readable.
+      [
+        [72, 782], [96, 830], [142, 846], [188, 860],
+        [524, 786], [568, 810], [610, 834], [654, 782],
+        [520, 650], [554, 676], [592, 730], [460, 690],
+        [92, 724], [132, 744], [174, 760], [214, 780],
+        [506, 748], [548, 764], [590, 786], [632, 808]
+      ].forEach(([x, y]) => add(x, y, "normal", 2.7));
     }
 
     function setupDefaultAcrylicParts() {
@@ -1235,42 +1328,20 @@
         {
           type: "curve",
           label: "左外周レール",
-          thickness: 24,
-          points: [{ x: 72, y: 120 }, { x: 54, y: 342 }, { x: 104, y: 548 }]
-        },
-        {
-          type: "curve",
-          label: "左寄りガイド",
-          thickness: 28,
-          points: [{ x: 106, y: 480 }, { x: 122, y: 566 }, { x: 248, y: 624 }]
-        },
-        {
-          type: "curve",
-          label: "道釘上アクリル",
-          thickness: 22,
-          points: [{ x: 182, y: 592 }, { x: 254, y: 650 }, { x: 344, y: 692 }]
+          thickness: 10,
+          points: [{ x: 72, y: 120 }, { x: 54, y: 300 }, { x: 74, y: 420 }]
         },
         {
           type: "curve",
           label: "右打ちレール",
-          thickness: 26,
+          thickness: 14,
           points: [{ x: 642, y: 94 }, { x: 690, y: 328 }, { x: 640, y: 560 }]
         },
         {
           type: "curve",
           label: "右アタッカー導入",
-          thickness: 24,
+          thickness: 14,
           points: [{ x: 672, y: 584 }, { x: 604, y: 642 }, { x: 516, y: 704 }]
-        },
-        {
-          type: "poly",
-          label: "液晶左肩",
-          points: [{ x: 98, y: 184 }, { x: 138, y: 160 }, { x: 166, y: 514 }, { x: 118, y: 536 }]
-        },
-        {
-          type: "poly",
-          label: "液晶右肩",
-          points: [{ x: 582, y: 160 }, { x: 622, y: 184 }, { x: 602, y: 536 }, { x: 554, y: 514 }]
         }
       ].forEach(part => acrylicParts.push(normalizeAcrylic(part)));
       removeHesoAcrylicHelpers();
@@ -1278,7 +1349,10 @@
     }
 
     function removeHesoAcrylicHelpers() {
-      const blocked = new Set(["ステージ受け", "ヘソ寄せ", "ステージ左返し", "ステージ右返し", "ヘソ左肩", "ヘソ右肩"]);
+      const blocked = new Set([
+        "ステージ受け", "ヘソ寄せ", "ステージ左返し", "ステージ右返し", "ヘソ左肩", "ヘソ右肩",
+        "液晶左肩", "液晶右肩"
+      ]);
       for (let i = acrylicParts.length - 1; i >= 0; i--) {
         if (blocked.has(acrylicParts[i].label || "")) acrylicParts.splice(i, 1);
       }
@@ -1318,30 +1392,23 @@
       return rightShot ? 88 : 62;
     }
 
-    function nailVarianceFor(setting) {
-      if (state.nailVariance[setting] == null) {
-        state.nailVariance[setting] = Math.round((Math.random() * 4 - 2) * 10) / 10;
-      }
-      return state.nailVariance[setting];
-    }
-
     function currentNailSetting() {
       const base = nailSettingTable[state.nailSetting] || nailSettingTable[3];
-      const spinsPer250 = Math.max(1, Math.round((base.spinsPer250 + nailVarianceFor(state.nailSetting)) * 10) / 10);
       return {
         ...base,
-        baseSpinsPer250: base.spinsPer250,
-        variance: Math.round((spinsPer250 - base.spinsPer250) * 10) / 10,
-        spinsPer250,
-        startPerBall: spinsPer250 / 250
+        startPerBall: base.spinsPer250 / 250,
+        displaySpinsPer250: base.spinsPer250.toFixed(1)
       };
     }
 
     function updateNailSettingUi() {
-      state.nailSetting = Math.max(1, Math.min(6, Number(els.nailSetting?.value || state.nailSetting || 3)));
+      const nextSetting = Math.max(1, Math.min(6, Number(els.nailSetting?.value || state.nailSetting || 3)));
+      if (nextSetting !== state.nailSetting) state.startMeter = 0;
+      state.nailSetting = nextSetting;
       const setting = currentNailSetting();
-      const sign = setting.variance >= 0 ? "+" : "";
-      if (els.nailSettingValue) els.nailSettingValue.textContent = `${state.nailSetting} / ${setting.spinsPer250}蝗・(${sign}${setting.variance})`;
+      if (els.nailSettingValue) {
+        els.nailSettingValue.textContent = `${setting.displaySpinsPer250}回/250玉・目標機械割${setting.machineRate}%`;
+      }
     }
 
     function spawnBall() {
@@ -1353,17 +1420,22 @@
         message("持ち玉がありません。リセットで再試行。");
         return;
       }
+      const shotAt = performance.now();
+      if (state.lastShotAt && shotAt - state.lastShotAt < fireIntervalMs() * .82) return;
+      state.lastShotAt = shotAt;
       state.balls--;
       state.fired++;
       state.balance--;
       const rightShot = isJackpotActive();
+      if (!rightShot) state.startMeter += currentNailSetting().startPerBall;
       const power = autoShotPower(rightShot);
-      const launch = hitAreas.launch;
       balls.push({
-        x: sx(launch.x),
-        y: sy(launch.y),
-        vx: rightShot ? power * .0082 : power * .0028,
-        vy: rightShot ? -power * .0029 : power * .0039,
+        // The visible launcher is in the cabinet; simulation begins at the
+        // upper rail exit, just inside the playfield.
+        x: sx(rightShot ? 110 : 118),
+        y: sy(rightShot ? 118 : 96),
+        vx: rightShot ? power * .0068 : power * .0008 + (Math.random() - .5) * .018,
+        vy: rightShot ? -power * .0025 : power * .0002 + Math.random() * .012,
         r: Math.max(5, canvas.clientWidth * .0105),
         massG: physics.ballMassG,
         live: true,
@@ -1371,7 +1443,8 @@
         age: 0,
         angle: Math.random() * Math.PI * 2,
         trail: [],
-        rightShot
+        rightShot,
+        startGateChecked: false
       });
       updateHud();
     }
@@ -1388,7 +1461,18 @@
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
       state.rightDeviceOpen = isJackpotActive() && Math.sin(performance.now() / 180) > -.92;
-      const scaledPins = pins.map(p => ({ x: sx(p.x), y: sy(p.y), r: Math.max(1.45, fixedPinRadius / 720 * w) }));
+      const settingInfo = currentNailSetting();
+      const hesoOpening = settingInfo.hesoOpening;
+      const scaledPins = pins.map(p => {
+        const adjustableHeso = p.kind === "heso" && p.y >= 730;
+        const direction = p.x < 360 ? -1 : p.x > 360 ? 1 : 0;
+        return {
+          x: sx(p.x + (adjustableHeso ? direction * hesoOpening : 0)),
+          y: sy(p.y),
+          r: Math.max(1.45, fixedPinRadius / 720 * w),
+          kind: p.kind
+        };
+      });
       const scaledPockets = pockets.map(p => ({
         ...p,
         x: sx(p.x),
@@ -1454,26 +1538,19 @@
             if (dot < 0) {
               ball.vx -= (1 + physics.nailRestitution) * dot * nx;
               ball.vy -= (1 + physics.nailRestitution) * dot * ny;
+              if (pin.kind === "road") ball.vx += Math.sign(sx(360) - ball.x) * settingInfo.roadBias;
+              if (pin.kind === "heso") ball.vx += Math.sign(sx(360) - ball.x) * settingInfo.hesoBias;
             }
             const tangentX = -ny;
             const tangentY = nx;
             const tangent = ball.vx * tangentX + ball.vy * tangentY;
-            ball.vx -= tangentX * tangent * .035;
-            ball.vy -= tangentY * tangent * .035;
+            ball.vx -= tangentX * tangent * .012;
+            ball.vy -= tangentY * tangent * .012;
             ball.vx += (Math.random() - .5) * physics.randomNailScatter;
-            ball.vy += (Math.random() - .5) * physics.randomNailScatter * .55;
+            ball.vy += (Math.random() - .5) * physics.randomNailScatter * .35;
             ball.glow = 1;
           }
         });
-
-        if (!ball.rightShot && ball.x > sx(455) && ball.y < sy(760)) {
-          const routeX = ball.y < sy(560) ? sx(142) : sx(318);
-          ball.vx += (routeX - ball.x) * .00018 * dt;
-          if (ball.vx > 1.1) ball.vx *= .72;
-        }
-        if (ball.rightShot && ball.x < sx(520) && ball.y < sy(560)) {
-          ball.vx += .010 * dt;
-        }
 
         for (const pocket of scaledPockets) {
           if (pocket.type === "attacker" && !state.rightDeviceOpen) continue;
@@ -1491,7 +1568,20 @@
           }
         }
 
-        if (ball.y > h + 60) ball.live = false;
+        const postCollisionSpeed = Math.hypot(ball.vx, ball.vy);
+        ball.slowAge = postCollisionSpeed < .095 ? (ball.slowAge || 0) + dt : 0;
+        if (ball.live && ball.slowAge > 200) {
+          ball.stuckBumps = (ball.stuckBumps || 0) + 1;
+          const rollDirection = ball.stuckBumps % 2 ? -1 : 1;
+          const escapeBoost = .09 + Math.min(.08, ball.stuckBumps * .015);
+          ball.vx += rollDirection * escapeBoost;
+          ball.vy = Math.max(ball.vy, .10 + Math.min(.10, ball.stuckBumps * .02));
+          ball.slowAge = 0;
+        } else if (postCollisionSpeed > .18) {
+          ball.stuckBumps = 0;
+        }
+
+        if (ball.y > h + 60 || ball.age > 12000) ball.live = false;
       });
 
       collideBalls(dt);
@@ -1530,7 +1620,9 @@
         const bottomCatch = withinBottom && ball.y + ball.r >= bottom - ball.r * .25;
         const lowerBackflow = ball.vy < 0 && withinBottom && ball.y - ball.r <= bottom && ball.y > top + pocket.h * .45;
         if (bottomCatch || lowerBackflow) return "out";
-        if (topEntry) return "start";
+        if (topEntry && !ball.startGateChecked) {
+          return consumeStartMeter(ball);
+        }
         return false;
       }
       if (pocket.shape === "semicircle" || pocket.type === "out") {
@@ -1542,11 +1634,21 @@
       if (pocket.type === "start") {
         const dist = Math.hypot(ball.x - pocket.x, ball.y - pocket.y);
         const prevDist = Math.hypot((ball.prevX ?? ball.x) - pocket.x, (ball.prevY ?? ball.y) - pocket.y);
-        const gate = pocket.r + ball.r * .38;
+        const meterCatch = state.startMeter >= 1 ? sx(12) : 0;
+        const gate = pocket.r + ball.r * .38 + meterCatch;
         const crossed = prevDist > gate && dist <= gate;
-        return ball.vy > 0 && (crossed || dist < pocket.r);
+        const physicalEntry = ball.vy > 0 && (crossed || dist < pocket.r + meterCatch);
+        return physicalEntry ? consumeStartMeter(ball) : false;
       }
       return Math.hypot(ball.x - pocket.x, ball.y - pocket.y) < pocket.r;
+    }
+
+    function consumeStartMeter(ball) {
+      if (ball.startGateChecked || ball.rightShot) return false;
+      ball.startGateChecked = true;
+      if (state.startMeter < 1) return false;
+      state.startMeter -= 1;
+      return "start";
     }
 
     function collideBalls(dt) {
@@ -1599,10 +1701,11 @@
     function playfieldShape() {
       return {
         x: sx(360),
-        y: sy(492),
-        rx: sx(338),
-        ry: sy(418),
-        topY: sy(74)
+        y: sy(458),
+        rx: sx(350),
+        ry: sy(440),
+        topY: sy(18),
+        exponent: 4
       };
     }
 
@@ -1612,12 +1715,16 @@
       const dy = ball.y - field.y;
       const rx = field.rx - ball.r - 2;
       const ry = field.ry - ball.r - 2;
-      const normalized = Math.hypot(dx / rx, dy / ry);
+      const exponent = field.exponent || 2;
+      const normalized = Math.pow(
+        Math.pow(Math.abs(dx) / rx, exponent) + Math.pow(Math.abs(dy) / ry, exponent),
+        1 / exponent
+      );
       if (normalized <= 1 || normalized <= .01) return;
       ball.x = field.x + dx / normalized;
       ball.y = field.y + dy / normalized;
-      const nxRaw = dx / (rx * rx);
-      const nyRaw = dy / (ry * ry);
+      const nxRaw = Math.sign(dx) * Math.pow(Math.abs(dx) / rx, exponent - 1) / rx;
+      const nyRaw = Math.sign(dy) * Math.pow(Math.abs(dy) / ry, exponent - 1) / ry;
       const nLen = Math.max(.01, Math.hypot(nxRaw, nyRaw));
       const nx = nxRaw / nLen;
       const ny = nyRaw / nLen;
@@ -1794,104 +1901,16 @@
     }
 
     function guideBall(ball, dt) {
-      let target;
+      // The launch mechanism is abstracted to the top of the playfield. Only a
+      // brief rail-entry impulse is applied; after that, nails and parts alone
+      // determine the route. This avoids invisible path-following forces.
+      if (ball.age > 260) return;
       if (ball.rightShot) {
-        if (ball.y < sy(140)) {
-          target = { x: sx(650), y: sy(92), force: .0022 };
-        } else if (ball.y < sy(330)) {
-          target = { x: sx(664), y: sy(360), force: .0016 };
-        } else if (ball.y < sy(545)) {
-          target = { x: sx(648), y: sy(565), force: state.rightDeviceOpen ? .0018 : .0012 };
-        } else {
-          target = { x: sx(612), y: sy(555), force: state.rightDeviceOpen ? .0022 : .0010 };
-        }
-      } else if (ball.y < sy(350)) {
-        target = { x: sx(84), y: sy(410), force: .00034 };
-      } else if (ball.y < sy(525)) {
-        target = { x: sx(96), y: sy(522), force: .00038 };
-      } else if (ball.y < sy(650)) {
-        target = { x: sx(250), y: sy(628), force: .00030 };
-      } else if (ball.y < sy(735)) {
-        target = { x: sx(344), y: sy(742), force: .00018 };
+        ball.vx += .00034 * dt;
+        ball.vy -= .00010 * dt;
       } else {
-        target = { x: sx(360), y: sy(812), force: .00014 };
-      }
-      const dx = target.x - ball.x;
-      const dy = target.y - ball.y;
-      const dist = Math.max(80, Math.hypot(dx, dy));
-      ball.vx += dx / dist * target.force * dt;
-      ball.vy += dy / dist * target.force * dt;
-
-      if (!ball.rightShot && ball.x < sx(150) && ball.y < sy(560)) {
-        ball.vx += .00025 * dt;
-        ball.vy += .0048 * dt;
-      }
-      if (!ball.rightShot && ball.age < 520 && ball.y < sy(190)) {
-        ball.vx += .0032 * dt;
-        if (ball.vx < .14) ball.vx = .14;
-      }
-      if (!ball.rightShot && ball.x > sx(430)) {
-        ball.vx += (sx(300) - ball.x) * .000022 * dt;
-        ball.vy += .0020 * dt;
-      }
-      if (!ball.rightShot) {
-        const wx = sx(hitAreas.windmill.x);
-        const wy = sy(hitAreas.windmill.y);
-        const dxw = ball.x - wx;
-        const dyw = ball.y - wy;
-        const dw = Math.hypot(dxw, dyw);
-        if (dw < sx(78) && dw > 1) {
-          const spin = Math.sin(performance.now() / 260);
-          const rightBias = .0007;
-          const sideKick = dxw < 0 ? .0005 : .0009;
-          ball.vx += (rightBias + sideKick + spin * .0012) * dt;
-          ball.vy += .0014 * dt;
-          ball.glow = Math.max(ball.glow, .82);
-        }
-      }
-      if (!ball.rightShot && ball.y > sy(500) && ball.y < sy(650) && ball.x > sx(62) && ball.x < sx(300)) {
-        if (!ball.leftLcdSplitSide) ball.leftLcdSplitSide = Math.random() < .46 ? 1 : -1;
-        const splitX = ball.leftLcdSplitSide > 0 ? sx(314) : sx(148);
-        ball.vx += (splitX - ball.x) * .000018 * dt;
-        ball.vy += .0024 * dt;
-        if (Math.abs(ball.x - sx(220)) < sx(42)) {
-          ball.vx += ball.leftLcdSplitSide * .0022 * dt;
-        }
-      }
-      if (!ball.rightShot && ball.y > sy(520)) {
-        const laneX = ball.y < sy(690) ? sx(304) : sx(356);
-        ball.vx += (laneX - ball.x) * .000008 * dt;
-      }
-      if (!ball.rightShot && ball.y > sy(690) && ball.y < sy(775) && Math.abs(ball.x - sx(360)) < sx(116)) {
-        const centerPull = sx(360) - ball.x;
-        ball.vx += centerPull * .000012 * dt;
-        ball.vy += .0018 * dt;
-      }
-      if (!ball.rightShot && ball.y > sy(790)) {
-        if (!ball.hesoSpillSide) {
-          state.spillFlip *= -1;
-          ball.hesoSpillSide = ball.x < sx(330) ? 1 : state.spillFlip;
-        }
-        const spillX = sx(ball.hesoSpillSide < 0 ? 322 : 398);
-        ball.vx += (spillX - ball.x) * .000012 * dt;
-        ball.vy += .0032 * dt;
-        if (ball.y > sy(812) && Math.abs(ball.x - sx(360)) < sx(38)) {
-          ball.vx += ball.hesoSpillSide * .0010 * dt;
-          ball.vy += .0042 * dt;
-        }
-      }
-      if (!ball.rightShot && ball.x > sx(470) && ball.y > sy(640)) {
-        ball.vx += (sx(360) - ball.x) * .000026 * dt;
-        ball.vy += .0032 * dt;
-      }
-      if (ball.rightShot) {
-        if (ball.x < sx(540) && ball.y < sy(420)) {
-          ball.vx += .007 * dt;
-        }
-        if (ball.x > sx(610) && ball.y > sy(260)) {
-          ball.vx += (sx(642) - ball.x) * .000075 * dt;
-          ball.vy += .010 * dt;
-        }
+        ball.vx += .00012 * dt;
+        ball.vy += .00020 * dt;
       }
     }
 
@@ -2300,13 +2319,13 @@
       bezel.addColorStop(1, "rgba(0,0,0,.56)");
       ctx.fillStyle = bezel;
       ctx.beginPath();
-      ctx.ellipse(w * .50, h * .50, w * .47, h * .45, 0, 0, Math.PI * 2);
+      playfieldPath(playfieldShape(), Math.max(8, w * .014));
       ctx.fill();
 
       ctx.strokeStyle = "rgba(255,255,255,.16)";
       ctx.lineWidth = Math.max(6, w * .012);
       ctx.beginPath();
-      ctx.ellipse(w * .50, h * .50, w * .465, h * .445, 0, 0, Math.PI * 2);
+      playfieldPath(playfieldShape(), Math.max(4, w * .008));
       ctx.stroke();
 
       const lower = ctx.createLinearGradient(0, h * .78, 0, h);
@@ -2347,29 +2366,43 @@
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, w, h);
 
-      const heat = ctx.createLinearGradient(w * .10, h * .12, w * .90, h * .70);
-      heat.addColorStop(0, "rgba(255, 181, 35, .30)");
-      heat.addColorStop(.28, "rgba(255, 71, 31, .30)");
-      heat.addColorStop(.50, "rgba(4, 255, 137, .12)");
-      heat.addColorStop(.78, "rgba(255, 150, 23, .26)");
-      heat.addColorStop(1, "rgba(255, 0, 60, .18)");
-      ctx.fillStyle = heat;
-      ctx.fillRect(0, 0, w, h);
+      if (rescueBackgroundReady) {
+        ctx.save();
+        ctx.globalAlpha = .90;
+        ctx.drawImage(rescueBackgroundImage, 0, 0, w, h);
+        ctx.restore();
 
-      ctx.save();
-      ctx.globalCompositeOperation = "screen";
-      for (let i = 0; i < 18; i++) {
-        const t = i / 17;
-        const y = h * (.17 + .50 * t);
-        const hue = i % 3 === 0 ? "rgba(255, 202, 56, .42)" : i % 3 === 1 ? "rgba(23, 238, 128, .28)" : "rgba(255, 64, 45, .32)";
-        ctx.strokeStyle = hue;
-        ctx.lineWidth = Math.max(2, w * (.005 + (i % 4) * .0015));
-        ctx.beginPath();
-        ctx.moveTo(w * (.06 + .03 * (i % 2)), y);
-        ctx.bezierCurveTo(w * .28, y - h * (.08 + .03 * Math.sin(i)), w * .58, y + h * (.10 - .04 * Math.cos(i)), w * .92, y - h * .04);
-        ctx.stroke();
+        const imageShade = ctx.createLinearGradient(0, 0, 0, h);
+        imageShade.addColorStop(0, "rgba(1, 7, 16, .08)");
+        imageShade.addColorStop(.48, "rgba(1, 7, 16, .14)");
+        imageShade.addColorStop(1, "rgba(1, 7, 16, .28)");
+        ctx.fillStyle = imageShade;
+        ctx.fillRect(0, 0, w, h);
+      } else {
+        const heat = ctx.createLinearGradient(w * .10, h * .12, w * .90, h * .70);
+        heat.addColorStop(0, "rgba(255, 181, 35, .30)");
+        heat.addColorStop(.28, "rgba(255, 71, 31, .30)");
+        heat.addColorStop(.50, "rgba(4, 255, 137, .12)");
+        heat.addColorStop(.78, "rgba(255, 150, 23, .26)");
+        heat.addColorStop(1, "rgba(255, 0, 60, .18)");
+        ctx.fillStyle = heat;
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+        for (let i = 0; i < 18; i++) {
+          const t = i / 17;
+          const y = h * (.17 + .50 * t);
+          const hue = i % 3 === 0 ? "rgba(255, 202, 56, .42)" : i % 3 === 1 ? "rgba(23, 238, 128, .28)" : "rgba(255, 64, 45, .32)";
+          ctx.strokeStyle = hue;
+          ctx.lineWidth = Math.max(2, w * (.005 + (i % 4) * .0015));
+          ctx.beginPath();
+          ctx.moveTo(w * (.06 + .03 * (i % 2)), y);
+          ctx.bezierCurveTo(w * .28, y - h * (.08 + .03 * Math.sin(i)), w * .58, y + h * (.10 - .04 * Math.cos(i)), w * .92, y - h * .04);
+          ctx.stroke();
+        }
+        ctx.restore();
       }
-      ctx.restore();
 
       const plate = ctx.createLinearGradient(0, h * .08, 0, h * .90);
       plate.addColorStop(0, "rgba(255,255,255,.12)");
@@ -2449,12 +2482,18 @@
     function playfieldPath(field, offset = 0) {
       const rx = field.rx + offset;
       const ry = field.ry + offset;
-      const topY = field.y - ry;
-      const bottomY = field.y + ry;
-      ctx.moveTo(field.x, topY);
-      ctx.bezierCurveTo(field.x + rx * .88, topY + ry * .04, field.x + rx, field.y + ry * .36, field.x + rx * .76, field.y + ry * .72);
-      ctx.bezierCurveTo(field.x + rx * .48, bottomY - ry * .02, field.x - rx * .48, bottomY - ry * .02, field.x - rx * .76, field.y + ry * .72);
-      ctx.bezierCurveTo(field.x - rx, field.y + ry * .36, field.x - rx * .88, topY + ry * .04, field.x, topY);
+      const exponent = field.exponent || 2;
+      const curvePower = 2 / exponent;
+      const steps = 72;
+      for (let i = 0; i <= steps; i++) {
+        const angle = -Math.PI / 2 + Math.PI * 2 * i / steps;
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const x = field.x + rx * Math.sign(cos) * Math.pow(Math.abs(cos), curvePower);
+        const y = field.y + ry * Math.sign(sin) * Math.pow(Math.abs(sin), curvePower);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
       ctx.closePath();
     }
 
@@ -2494,58 +2533,41 @@
       ctx.strokeStyle = "rgba(10, 12, 18, .92)";
       ctx.lineWidth = Math.max(2, w * .004);
       ctx.stroke();
-      ctx.shadowColor = "rgba(255, 151, 29, .85)";
-      ctx.shadowBlur = Math.max(8, w * .018);
-      ctx.fillStyle = "rgba(255,255,255,.96)";
-      ctx.strokeStyle = "rgba(8, 10, 14, .92)";
-      ctx.lineWidth = Math.max(4, w * .008);
-      ctx.font = `900 ${Math.max(28, w * .070)}px "Noto Sans JP", "Segoe UI", sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.strokeText("救急隊", 0, h * .004);
-      ctx.fillText("救急隊", 0, h * .004);
+      if (rescueTitleReady) {
+        const titleWidth = w * .43;
+        const titleHeight = titleWidth * rescueTitleImage.naturalHeight / rescueTitleImage.naturalWidth;
+        ctx.shadowColor = "rgba(255, 151, 29, .78)";
+        ctx.shadowBlur = Math.max(8, w * .014);
+        ctx.drawImage(
+          rescueTitleImage,
+          -titleWidth / 2,
+          -titleHeight / 2 + h * .004,
+          titleWidth,
+          titleHeight
+        );
+      }
       ctx.restore();
     }
 
     function drawSideRoutePanels(w, h) {
+      if (!acrylicGuardReady) return;
       ctx.save();
       ctx.globalCompositeOperation = "screen";
-      const left = ctx.createLinearGradient(w * .06, h * .22, w * .24, h * .72);
-      left.addColorStop(0, "rgba(0, 255, 220, .48)");
-      left.addColorStop(.55, "rgba(0, 154, 255, .36)");
-      left.addColorStop(1, "rgba(252, 255, 90, .28)");
-      ctx.fillStyle = left;
-      ctx.beginPath();
-      ctx.moveTo(w * .10, h * .20);
-      ctx.bezierCurveTo(w * .22, h * .28, w * .19, h * .52, w * .25, h * .70);
-      ctx.lineTo(w * .14, h * .75);
-      ctx.bezierCurveTo(w * .06, h * .55, w * .04, h * .36, w * .10, h * .20);
-      ctx.closePath();
-      ctx.fill();
+      ctx.globalAlpha = .66;
+      const guardHeight = h * .64;
+      const guardWidth = guardHeight * acrylicGuardImage.naturalWidth / acrylicGuardImage.naturalHeight;
+      const guardX = w * .012;
+      const guardY = h * .17;
 
-      const right = ctx.createLinearGradient(w * .78, h * .24, w * .94, h * .72);
-      right.addColorStop(0, "rgba(255,255,255,.45)");
-      right.addColorStop(.42, "rgba(116, 255, 128, .26)");
-      right.addColorStop(1, "rgba(255, 45, 151, .36)");
-      ctx.fillStyle = right;
-      ctx.beginPath();
-      ctx.moveTo(w * .86, h * .22);
-      ctx.bezierCurveTo(w * .94, h * .38, w * .92, h * .58, w * .82, h * .76);
-      ctx.lineTo(w * .72, h * .71);
-      ctx.bezierCurveTo(w * .79, h * .55, w * .78, h * .38, w * .86, h * .22);
-      ctx.closePath();
-      ctx.fill();
+      ctx.shadowColor = "rgba(78, 220, 255, .58)";
+      ctx.shadowBlur = Math.max(8, w * .014);
+      ctx.drawImage(acrylicGuardImage, guardX, guardY, guardWidth, guardHeight);
 
-      ctx.strokeStyle = "rgba(255,255,255,.44)";
-      ctx.lineWidth = Math.max(2, w * .004);
-      ["left", "right"].forEach(side => {
-        const startX = side === "left" ? w * .13 : w * .86;
-        const endX = side === "left" ? w * .22 : w * .76;
-        ctx.beginPath();
-        ctx.moveTo(startX, h * .28);
-        ctx.bezierCurveTo(side === "left" ? w * .08 : w * .92, h * .43, side === "left" ? w * .20 : w * .80, h * .58, endX, h * .72);
-        ctx.stroke();
-      });
+      ctx.translate(w, 0);
+      ctx.scale(-1, 1);
+      ctx.filter = "hue-rotate(165deg) saturate(1.12)";
+      ctx.shadowColor = "rgba(255, 132, 57, .52)";
+      ctx.drawImage(acrylicGuardImage, guardX, guardY, guardWidth, guardHeight);
       ctx.restore();
     }
 
@@ -3477,7 +3499,11 @@
     function loop(now) {
       const dt = Math.min(32, now - lastTime);
       lastTime = now;
-      update(dt);
+      physicsAccumulator = Math.min(48, physicsAccumulator + dt);
+      while (physicsAccumulator >= fixedPhysicsStep) {
+        update(fixedPhysicsStep);
+        physicsAccumulator -= fixedPhysicsStep;
+      }
       draw();
       requestAnimationFrame(loop);
     }
@@ -4027,30 +4053,29 @@
     }
 
     function boardCssMetrics() {
-      const mobile = window.matchMedia("(max-width: 560px)").matches;
-      const topInset = mobile ? 104 : 96;
-      const heightInset = mobile ? 116 : 108;
-      return { topInset, heightInset };
+      return state.boardZoom
+        ? { leftInset: 12, topInset: 96 }
+        : { leftInset: 62, topInset: 122 };
     }
 
     function syncLcdDomToHitArea() {
       if (!els.centerScreen || els.centerScreen.classList.contains("zoomed")) return;
       const lcd = hitAreas.lcd;
-      const { topInset, heightInset } = boardCssMetrics();
-      els.centerScreen.style.left = `calc(12px + (100% - 24px) * ${lcd.x} / 720)`;
-      els.centerScreen.style.top = `calc(${topInset}px + (100% - ${heightInset}px) * ${lcd.y} / 900)`;
-      els.centerScreen.style.width = `calc((100% - 24px) * ${lcd.w} / 720)`;
-      els.centerScreen.style.height = `calc((100% - ${heightInset}px) * ${lcd.h} / 900)`;
+      const { leftInset, topInset } = boardCssMetrics();
+      els.centerScreen.style.left = `${leftInset + lcd.x}px`;
+      els.centerScreen.style.top = `${topInset + lcd.y}px`;
+      els.centerScreen.style.width = `${lcd.w}px`;
+      els.centerScreen.style.height = `${lcd.h}px`;
     }
 
     function syncCabinetPartsToHitAreas() {
       if (!els.launchHandle) return;
       const guard = hitAreas.handle;
-      const { topInset, heightInset } = boardCssMetrics();
+      const { leftInset, topInset } = boardCssMetrics();
       const size = Math.max(32, guard.r * 2);
-      els.launchHandle.style.left = `calc(12px + (100% - 24px) * ${guard.x} / 720 - (100% - 24px) * ${size / 2} / 720)`;
-      els.launchHandle.style.top = `calc(${topInset}px + (100% - ${heightInset}px) * ${guard.y} / 900 - (100% - 24px) * ${size / 2} / 720)`;
-      els.launchHandle.style.width = `calc((100% - 24px) * ${size} / 720)`;
+      els.launchHandle.style.left = `${leftInset + guard.x - size / 2}px`;
+      els.launchHandle.style.top = `${topInset + guard.y - size / 2}px`;
+      els.launchHandle.style.width = `${size}px`;
       els.launchHandle.style.right = "auto";
       els.launchHandle.style.bottom = "auto";
     }
@@ -4426,7 +4451,8 @@
     els.power.addEventListener("input", syncHandleUi);
     els.nailSetting.addEventListener("input", () => {
       updateNailSettingUi();
-      addLog(`釘設定${state.nailSetting}: 約${currentNailSetting().spinsPer250}回/250玉`);
+      const setting = currentNailSetting();
+      addLog(`設定${state.nailSetting}: 約${setting.displaySpinsPer250}回/250玉・目標機械割${setting.machineRate}%`);
     });
     els.launchHandle.addEventListener("click", toggleAutoFire);
     els.centerScreen.addEventListener("click", toggleLcdZoom);
