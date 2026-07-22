@@ -290,31 +290,38 @@
       z-index: 5;
       width: clamp(104px, 14vw, 136px);
       aspect-ratio: 1;
-      border: 1px solid rgba(255, 211, 106, .38);
+      border: 0;
       border-radius: 50%;
-      background:
-        radial-gradient(circle at 36% 30%, rgba(255, 255, 255, .55), transparent 12%),
-        radial-gradient(circle at 50% 50%, #414955 0 22%, #202a36 23% 45%, #111820 46% 65%, #080c11 66%);
-      box-shadow: 0 12px 30px rgba(0, 0, 0, .45), inset 0 0 0 7px rgba(255, 255, 255, .06), inset 0 0 24px rgba(255, 211, 106, .18);
+      background: transparent;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, .45);
       cursor: grab;
       touch-action: none;
       user-select: none;
     }
 
+    .launch-handle::before {
+      content: "";
+      position: absolute;
+      inset: -8%;
+      z-index: 0;
+      border-radius: 50%;
+      background: url("pachinko_rescue_launch_handle_v1.png") center / contain no-repeat;
+      filter: drop-shadow(0 8px 12px rgba(0, 0, 0, .62));
+      pointer-events: none;
+    }
+
     .launch-handle:active,
     .launch-handle.active {
       cursor: grabbing;
-      box-shadow: 0 0 34px rgba(255, 211, 106, .44), 0 12px 30px rgba(0, 0, 0, .45), inset 0 0 0 7px rgba(255, 255, 255, .08);
+      box-shadow: 0 0 34px rgba(102, 227, 255, .44), 0 12px 30px rgba(0, 0, 0, .45);
+    }
+
+    .launch-handle.active::before {
+      filter: brightness(1.12) saturate(1.12) drop-shadow(0 0 12px rgba(102, 227, 255, .62));
     }
 
     .handle-knob {
-      position: absolute;
-      inset: 13%;
-      border-radius: 50%;
-      background:
-        conic-gradient(from -80deg, rgba(255, 211, 106, .2), rgba(102, 227, 255, .22), rgba(255, 111, 159, .18), rgba(255, 211, 106, .2)),
-        radial-gradient(circle at 50% 50%, #242d39, #0a0f15 70%);
-      border: 1px solid rgba(255, 255, 255, .20);
+      display: none;
     }
 
     .handle-needle {
@@ -328,15 +335,11 @@
       transform-origin: 50% 92%;
       background: linear-gradient(#fff4c2, #ffb337);
       box-shadow: 0 0 16px rgba(255, 211, 106, .55);
+      z-index: 2;
     }
 
     .handle-center {
-      position: absolute;
-      inset: 34%;
-      border-radius: 50%;
-      background: radial-gradient(circle at 35% 28%, #ffffff, #ffd36a 32%, #955c14 100%);
-      border: 1px solid rgba(255, 255, 255, .35);
-      box-shadow: 0 4px 14px rgba(0, 0, 0, .36);
+      display: none;
     }
 
     .handle-power {
@@ -352,9 +355,42 @@
       color: #fff;
       font-size: 12px;
       font-weight: 800;
+      z-index: 3;
       text-align: center;
       font-variant-numeric: tabular-nums;
       pointer-events: none;
+    }
+
+    .handle-adjust {
+      position: absolute;
+      left: 50%;
+      bottom: 29px;
+      z-index: 4;
+      width: 70%;
+      height: 14px;
+      transform: translateX(-50%);
+      accent-color: #66e3ff;
+      cursor: ew-resize;
+      touch-action: pan-x;
+    }
+
+    .handle-adjust::-webkit-slider-runnable-track {
+      height: 5px;
+      border: 1px solid rgba(255,255,255,.34);
+      border-radius: 999px;
+      background: linear-gradient(90deg, #66e3ff 0 68%, #ff5262 68% 100%);
+      box-shadow: 0 0 8px rgba(72, 224, 255, .48);
+    }
+
+    .handle-adjust::-webkit-slider-thumb {
+      width: 15px;
+      height: 15px;
+      margin-top: -6px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      background: #ffd36a;
+      box-shadow: 0 0 8px rgba(255, 211, 106, .72);
+      appearance: none;
     }
 
     .side {
@@ -884,6 +920,7 @@
         <div class="handle-knob"></div>
         <div class="handle-needle" id="handleNeedle"></div>
         <div class="handle-center"></div>
+        <input class="handle-adjust" id="handleAdjust" type="range" min="32" max="92" value="62" aria-label="ハンドル強度">
         <div class="handle-power" id="handlePower">AUTO</div>
       </div>
     </section>
@@ -892,7 +929,7 @@
       <section class="controls">
         <div class="handle-row">
           <button class="icon-btn" id="down" title="弱い">-</button>
-          <input class="range" id="power" type="range" min="32" max="92" value="58" aria-label="打ち出し強さ">
+          <input class="range" id="power" type="range" min="32" max="92" value="62" aria-label="打ち出し強さ">
           <button class="icon-btn" id="up" title="強い">+</button>
         </div>
         <label class="setting-row">
@@ -1029,6 +1066,7 @@
       centerScreen: document.getElementById("centerScreen"),
       launchHandle: document.getElementById("launchHandle"),
       handleNeedle: document.getElementById("handleNeedle"),
+      handleAdjust: document.getElementById("handleAdjust"),
       handlePower: document.getElementById("handlePower"),
       lcd: document.getElementById("lcd"),
       log: document.getElementById("log"),
@@ -1053,6 +1091,7 @@
       holdPause: false,
       speedMode: false,
       forceJackpot: false,
+      launchPower: 62,
       boardZoom: false,
       rightDeviceOpen: false,
       nailSetting: 3,
@@ -1179,16 +1218,17 @@
       { x: 360, y: 900, r: 72, shape: "semicircle", type: "out", label: "", color: "#8895a4" }
     ];
     const hitAreas = {
-      lcd: { x: 206, y: 210, w: 308, h: 250 },
+      lcd: { x: 129, y: 130, w: 430, h: 323 },
       rightDevice: { x: 642, y: 568, w: 72, h: 136 },
-      windmill: { x: 162, y: 410, r: 24, collisionR: 13 },
+      windmill: { x: 164, y: 477, r: 22, collisionR: 12 },
       launch: { x: 54, y: 74, r: 18 },
       push: { x: 82, y: 824, r: 49 },
       handle: { x: 650, y: 838, r: 76 }
     };
     const warpDevice = {
-      entry: { x: 198, y: 445, r: 19 },
-      stage: { left: 236, right: 484, y: 477 }
+      visual: { x: 190, y: 455, w: 340, h: 108 },
+      entry: { x: 218, y: 486, r: 17 },
+      stage: { left: 253, right: 467, y: 502 }
     };
     const rightAcrylicChute = {
       x: 560,
@@ -1220,6 +1260,22 @@
         { x: 666, y: 505 },
         { x: 675, y: 532 }
       ]
+    };
+    const upperLaunchGuide = {
+      center: { x: 360, y: 180 },
+      track: { rx: 256, ry: 114 },
+      launcher: { x: -12, y: 190 },
+      leftJoin: { x: 104, y: 180 },
+      supportVisual: { x: 103, y: 78, w: 475, h: 103 },
+      supportArc: {
+        start: { x: 138, y: 122 },
+        control: { x: 360, y: 66 },
+        end: { x: 552, y: 122 },
+        thickness: 6
+      },
+      weakThreshold: 44,
+      rightThreshold: 84,
+      stopper: { ax: 548, ay: 88, bx: 566, by: 126, thickness: 7 }
     };
     const acrylicParts = [];
     const layoutStorageKey = "pachinkoPrototypeDefaultLayoutV1";
@@ -1351,6 +1407,12 @@
     centerWarpAcrylicImage.addEventListener("load", () => {
       centerWarpAcrylicReady = true;
     });
+    const upperCornerSupportImage = new Image();
+    upperCornerSupportImage.src = "pachinko_upper_corner_support_v1.png";
+    let upperCornerSupportReady = false;
+    upperCornerSupportImage.addEventListener("load", () => {
+      upperCornerSupportReady = true;
+    });
     const ballImage = new Image();
     ballImage.src = "pachinko_ball.png";
     let ballImageReady = false;
@@ -1406,49 +1468,68 @@
         }
       };
 
-      // Generic modern P-machine gauge: a large center unit with distinct
-      // normal-shot (left), yori / michi / heso, and bonus-shot (right) routes.
-      // Coordinates are intentionally original rather than copied from one machine.
+      // Modern P-machine normal route derived from the current LCD bounds.
+      // The left lane is wide enough for a 5.5 g ball, while the lower apron
+      // visibly branches toward WARP, START, and the side spill paths.
+      const lcd = hitAreas.lcd;
+      const lcdLeft = lcd.x;
+      const lcdRight = lcd.x + lcd.w;
+      const lcdTop = lcd.y;
+      const lcdBottom = lcd.y + lcd.h;
+      const leftInner = lcdLeft - 17;
+      const leftMid = lcdLeft - 48;
 
-      // Upper crown and the narrow normal-shot lane beside the center unit.
-      curve([{ x: 46, y: 112 }, { x: 46, y: 230 }, { x: 52, y: 356 }, { x: 66, y: 456 }], 15, "warp", 2.7);
-      curve([{ x: 116, y: 112 }, { x: 188, y: 126 }, { x: 264, y: 118 }, { x: 330, y: 146 }], 11, "spill", 2.65);
-      curve([{ x: 604, y: 112 }, { x: 532, y: 126 }, { x: 456, y: 118 }, { x: 390, y: 146 }], 11, "spill", 2.65);
-      line(252, 152, 126, 208, 8, "normal", 2.65);
-      line(468, 152, 594, 208, 8, "normal", 2.65);
-      add(70, 310, "normal", 2.7);
-      add(76, 352, "normal", 2.7);
-      add(82, 394, "normal", 2.7);
-      add(70, 438, "normal", 2.7);
+      // Keep the entire crown above the LCD nail-free. The open support arc
+      // handles the upper-ball motion without creating pin interference.
+      curve([{ x: 46, y: 170 }, { x: 46, y: 252 }, { x: 53, y: 354 }, { x: 68, y: 446 }], 12, "warp", 2.7);
 
-      // Extra staggered nails keep the narrow side corridors lively without
-      // introducing invisible guide forces or overlapping the fixed LCD.
-      for (let row = 0; row < 7; row++) {
-        add(row % 2 ? 194 : 180, 234 + row * 34, row % 2 ? "spill" : "normal", 2.65);
-        add(row % 2 ? 526 : 540, 234 + row * 34, row % 2 ? "hot" : "normal", 2.65);
+      // Two boundary rows and one staggered center row make the left lane
+      // lively without placing nails behind the enlarged LCD.
+      curve([
+        { x: leftInner, y: lcdTop + 16 },
+        { x: leftInner - 4, y: lcdTop + 116 },
+        { x: leftInner + 3, y: lcdTop + 224 },
+        { x: leftInner + 16, y: lcdBottom + 10 }
+      ], 12, "spill", 2.7);
+      for (let row = 0; row < 9; row++) {
+        const y = lcdTop + 36 + row * 31;
+        add(leftMid + (row % 2 ? 12 : 0), y, row % 3 === 1 ? "road" : "normal", 2.7);
       }
 
-      // Yori nails collect balls leaving the left side of the center frame.
-      curve([{ x: 130, y: 426 }, { x: 136, y: 486 }, { x: 158, y: 548 }, { x: 208, y: 590 }], 10, "spill", 2.8);
-      curve([{ x: 168, y: 444 }, { x: 174, y: 510 }, { x: 198, y: 570 }, { x: 250, y: 608 }], 10, "road", 2.85);
-      line(60, 548, 138, 558, 4, "road", 2.85);
-      line(78, 586, 166, 610, 5, "spill", 2.75);
+      // The upper yori directs some balls into the visible WARP mouth. A
+      // parallel outer path deliberately bypasses it and continues downward.
+      curve([
+        { x: leftInner + 16, y: lcdBottom + 10 },
+        { x: 137, y: 470 },
+        { x: 158, y: 480 },
+        { x: 181, y: 486 }
+      ], 5, "road", 2.85);
+      curve([
+        { x: 68, y: 446 },
+        { x: 82, y: 500 },
+        { x: 118, y: 548 },
+        { x: 184, y: 584 },
+        { x: 270, y: 612 }
+      ], 11, "spill", 2.8);
 
-      // A broad apron below the center unit produces repeated left/right
-      // deflections before balls reach the yori and michi channels.
-      staggered(194, 526, 486, 5, 40, 38, "road", "spill", 2.7);
+      // Nails below the acrylic begin only after its visible lower edge. This
+      // prevents the stage animation from appearing to pass through nails.
+      line(190, 578, 315, 612, 6, "road", 2.85);
+      line(530, 578, 405, 612, 6, "road", 2.85);
+      line(158, 614, 300, 640, 7, "spill", 2.75);
+      line(562, 614, 420, 640, 7, "spill", 2.75);
 
-      // Michi nails turn toward the raised START while leaving the warp-stage
-      // center drop visibly clear.
-      curve([{ x: 60, y: 572 }, { x: 120, y: 596 }, { x: 220, y: 612 }, { x: 342, y: 624 }], 12, "road", 2.9);
-      curve([{ x: 118, y: 604 }, { x: 194, y: 618 }, { x: 266, y: 628 }, { x: 336, y: 636 }], 11, "spill", 2.8);
+      // Michi nails feed the START shoulder from both sides. The straight
+      // center chute used by the warp reservation remains nail-free.
+      curve([{ x: 60, y: 572 }, { x: 120, y: 596 }, { x: 220, y: 614 }, { x: 320, y: 630 }], 11, "road", 2.9);
+      curve([{ x: 660, y: 572 }, { x: 600, y: 596 }, { x: 500, y: 614 }, { x: 400, y: 630 }], 11, "road", 2.9);
       line(82, 620, 50, 716, 7, "spill", 2.7);
       line(154, 646, 118, 744, 7, "spill", 2.7);
       line(218, 674, 184, 768, 7, "spill", 2.7);
 
-      // Heso approach, entrance nails, and the lower spill fan.
-      line(270, 596, 342, 624, 6, "heso", 2.95);
-      line(450, 596, 378, 624, 6, "heso", 2.95);
+      // Heso entrance nails and lower spill fan.
+      line(270, 602, 342, 628, 6, "heso", 2.95);
+      line(450, 602, 378, 628, 6, "heso", 2.95);
       add(342, 642, "heso", 3.05);
       add(378, 642, "heso", 3.05);
       add(322, 682, "spill", 2.9);
@@ -1477,11 +1558,31 @@
       // START notch itself.
       for (let i = pins.length - 1; i >= 0; i--) {
         const pin = pins[i];
-        const overlapsStage = pin.x >= 170 && pin.x <= 550 && pin.y >= 420 && pin.y <= 545;
-        const blocksCenterChute = Math.abs(pin.x - 360) < 32 && pin.y > 545 && pin.y <= 632;
+        const visual = warpDevice.visual;
+        const overlapsLcd =
+          pin.x >= lcdLeft - 10 && pin.x <= lcdRight + 10 &&
+          pin.y >= lcdTop - 10 && pin.y <= lcdBottom + 10;
+        const overlapsStage =
+          pin.x >= visual.x - 6 && pin.x <= visual.x + visual.w + 6 &&
+          pin.y >= visual.y - 6 && pin.y <= visual.y + visual.h + 8;
+        const overlapsWarpMouth = Math.hypot(
+          pin.x - warpDevice.entry.x,
+          pin.y - warpDevice.entry.y
+        ) < warpDevice.entry.r + 12;
+        const overlapsWindmill = Math.hypot(
+          pin.x - hitAreas.windmill.x,
+          pin.y - hitAreas.windmill.y
+        ) < hitAreas.windmill.r + 8;
+        const blocksCenterChute =
+          Math.abs(pin.x - 360) < 32 &&
+          pin.y > visual.y + visual.h && pin.y <= 632;
         const overlapsStartNotch = Math.abs(pin.x - 360) <= 30 && pin.y > 632 && pin.y <= 654;
         const overlapsRightAcrylic = pin.x >= 548 && pin.y >= 76 && pin.y <= 590;
-        if (overlapsStage || blocksCenterChute || overlapsStartNotch || overlapsRightAcrylic) pins.splice(i, 1);
+        const overlapsUpperCrown = pin.y < lcdTop + 24;
+        if (
+          overlapsLcd || overlapsStage || overlapsWarpMouth || overlapsWindmill ||
+          blocksCenterChute || overlapsStartNotch || overlapsRightAcrylic || overlapsUpperCrown
+        ) pins.splice(i, 1);
       }
     }
 
@@ -1564,7 +1665,23 @@
     }
 
     function autoShotPower(rightShot = isRightShotActive()) {
-      return rightShot ? 88 : 62;
+      const manualPower = Math.max(32, Math.min(92, Number(state.launchPower) || 62));
+      return rightShot ? Math.max(88, manualPower) : manualPower;
+    }
+
+    function setLaunchPower(value, announce = false) {
+      const min = Number(els.power.min);
+      const max = Number(els.power.max);
+      state.launchPower = Math.max(min, Math.min(max, Math.round(Number(value) || 62)));
+      els.power.value = state.launchPower;
+      if (els.handleAdjust) els.handleAdjust.value = state.launchPower;
+      syncHandleUi();
+      if (announce) {
+        const route = state.launchPower < upperLaunchGuide.weakThreshold
+          ? "返却域"
+          : state.launchPower >= upperLaunchGuide.rightThreshold ? "右打ち域" : "左打ち域";
+        message(`ハンドル強度 ${state.launchPower}（${route}）`);
+      }
     }
 
     function currentNailSetting() {
@@ -1587,20 +1704,22 @@
     }
 
     function spawnBall() {
-      const rightShot = isRightShotActive();
+      const power = autoShotPower();
+      const rightShot = isRightShotActive() || power >= upperLaunchGuide.rightThreshold;
       if (!isJackpotActive() && state.pendingStarts >= maxHolds) {
         pauseAutoForFullHold();
         return;
       }
       if (isJackpotActive()) {
         const remainingEntries = Math.max(0, bonusEntriesPerRound - state.bonusEntries);
-        const ballsInRightChute = balls.filter(ball => ball.live && ball.rightAcrylicStage).length;
+        const ballsInRightChute = balls.filter(ball => ball.live && (ball.rightAcrylicStage || ball.launchRail?.rightShot)).length;
         if (ballsInRightChute >= remainingEntries) return;
       } else if (isRushStActive()) {
         const availableHolds = Math.max(0, maxHolds - state.pendingStarts);
-        const ballsInRightChute = balls.filter(ball => ball.live && ball.rightAcrylicStage).length;
+        const ballsInRightChute = balls.filter(ball => ball.live && (ball.rightAcrylicStage || ball.launchRail?.rightShot)).length;
         if (ballsInRightChute >= availableHolds) return;
       }
+      if (balls.filter(ball => ball.live && ball.launchRail).length >= 4) return;
       if (state.balls <= 0) {
         message("持ち玉がありません。リセットで再試行。");
         return;
@@ -1611,15 +1730,11 @@
       state.balls--;
       state.fired++;
       state.balance--;
-      if (!rightShot) state.startMeter += currentNailSetting().startPerBall;
-      const power = autoShotPower(rightShot);
       balls.push({
-        // The visible launcher is in the cabinet; simulation begins at the
-        // upper rail exit, just inside the playfield.
-        x: sx(rightShot ? rightAcrylicChute.commonPath[0].x : 118),
-        y: sy(rightShot ? rightAcrylicChute.commonPath[0].y : 96),
-        vx: rightShot ? 0 : power * .0008 + (Math.random() - .5) * .018,
-        vy: rightShot ? 0 : power * .0002 + Math.random() * .012,
+        x: sx(upperLaunchGuide.launcher.x),
+        y: sy(upperLaunchGuide.launcher.y),
+        vx: 0,
+        vy: 0,
         r: Math.max(5, canvas.clientWidth * .0105),
         massG: physics.ballMassG,
         live: true,
@@ -1628,18 +1743,139 @@
         angle: Math.random() * Math.PI * 2,
         trail: [],
         rightShot,
+        shotPower: power,
         startGateChecked: false,
         startMouthEntered: false,
         warpUsed: false,
         warpStage: null,
-        rightAcrylicStage: rightShot ? {
+        launchRail: {
+          elapsed: 0,
+          duration: rightShot ? 780 : 760 - (power - 32) * 2,
+          power,
+          weak: power < upperLaunchGuide.weakThreshold,
+          rightShot,
+          exit: isJackpotActive() ? "bonus" : "rush",
+          refunded: false
+        },
+        rightAcrylicStage: null
+      });
+      updateHud();
+    }
+
+    function cubicPoint(p0, p1, p2, p3, t) {
+      const u = 1 - t;
+      const uu = u * u;
+      const tt = t * t;
+      return {
+        x: uu * u * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + tt * t * p3.x,
+        y: uu * u * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + tt * t * p3.y
+      };
+    }
+
+    function launchLiftPoint(t) {
+      return cubicPoint(
+        upperLaunchGuide.launcher,
+        { x: 18, y: 136 },
+        { x: 74, y: 150 },
+        upperLaunchGuide.leftJoin,
+        Math.max(0, Math.min(1, t))
+      );
+    }
+
+    function launchArcPoint(arcProgress) {
+      const angle = Math.PI - Math.max(0, Math.min(1, arcProgress)) * Math.PI;
+      return {
+        x: upperLaunchGuide.center.x + upperLaunchGuide.track.rx * Math.cos(angle),
+        y: upperLaunchGuide.center.y - upperLaunchGuide.track.ry * Math.sin(angle)
+      };
+    }
+
+    function launchTrackPoint(route, progress) {
+      if (route.weak) {
+        const reach = .30 + (route.power - 32) / Math.max(1, upperLaunchGuide.weakThreshold - 33) * .62;
+        const roundTrip = progress < .5 ? progress * 2 : (1 - progress) * 2;
+        return launchLiftPoint(reach * Math.max(0, roundTrip));
+      }
+
+      const liftEnd = route.rightShot ? .58 : .70;
+      if (progress <= liftEnd) return launchLiftPoint(progress / liftEnd);
+
+      const normalPowerRange = Math.max(1, upperLaunchGuide.rightThreshold - upperLaunchGuide.weakThreshold - 1);
+      const normalT = Math.max(0, Math.min(1, (route.power - upperLaunchGuide.weakThreshold) / normalPowerRange));
+      const targetArc = route.rightShot
+        ? .78 + Math.max(0, route.power - upperLaunchGuide.rightThreshold) / 8 * .12
+        : .06 + normalT * .45;
+      const arcEnd = route.rightShot ? .90 : 1;
+      if (progress <= arcEnd) {
+        return launchArcPoint(targetArc * (progress - liftEnd) / Math.max(.01, arcEnd - liftEnd));
+      }
+      const arcPoint = launchArcPoint(targetArc);
+      const rightEntry = rightAcrylicChute.commonPath[0];
+      const t = (progress - arcEnd) / Math.max(.01, 1 - arcEnd);
+      return {
+        x: arcPoint.x + (rightEntry.x - arcPoint.x) * t,
+        y: arcPoint.y + (rightEntry.y - arcPoint.y) * t
+      };
+    }
+
+    function refundWeakLaunch(ball, route) {
+      if (route.refunded) return;
+      route.refunded = true;
+      ball.live = false;
+      ball.launchRail = null;
+      state.balls += 1;
+      state.balance += 1;
+      state.fired = Math.max(0, state.fired - 1);
+      burst(ball.x, ball.y, "#66e3ff", 10);
+      const text = `強度${route.power}: 発射口へ戻り 1pt返却`;
+      message(text);
+      addLog(text);
+      updateHud();
+    }
+
+    function advanceLaunchRail(ball, dt) {
+      const route = ball.launchRail;
+      if (!route || !ball.live) return false;
+      ball.prevX = ball.x;
+      ball.prevY = ball.y;
+      ball.trail.push({ x: ball.x, y: ball.y });
+      if (ball.trail.length > 8) ball.trail.shift();
+      route.elapsed += dt;
+      const progress = Math.min(1, route.elapsed / Math.max(1, route.duration));
+      const point = launchTrackPoint(route, progress);
+      ball.x = sx(point.x);
+      ball.y = sy(point.y);
+      ball.vx = (ball.x - ball.prevX) / Math.max(1, dt);
+      ball.vy = (ball.y - ball.prevY) / Math.max(1, dt);
+      ball.angle += Math.hypot(ball.vx, ball.vy) * dt / Math.max(1, ball.r) * .22;
+      ball.glow = Math.max(.7, ball.glow * .998);
+      if (progress < 1) return true;
+
+      if (route.weak) {
+        refundWeakLaunch(ball, route);
+        return true;
+      }
+
+      ball.launchRail = null;
+      if (route.rightShot) {
+        ball.x = sx(rightAcrylicChute.commonPath[0].x);
+        ball.y = sy(rightAcrylicChute.commonPath[0].y);
+        ball.vx = 0;
+        ball.vy = 0;
+        ball.rightAcrylicStage = {
           elapsed: 0,
           duration: 3000 + Math.random() * 180,
           offset: (Math.random() - .5) * 4,
-          exit: isJackpotActive() ? "bonus" : "rush"
-        } : null
-      });
-      updateHud();
+          exit: route.exit
+        };
+        return true;
+      }
+
+      state.startMeter += currentNailSetting().startPerBall;
+      ball.age = 0;
+      ball.vx = .07 + (route.power - upperLaunchGuide.weakThreshold) * .0045 + (Math.random() - .5) * .015;
+      ball.vy = .055 + Math.random() * .018;
+      return true;
     }
 
     function burst(x, y, color, count = 18) {
@@ -1679,6 +1915,7 @@
 
       balls.forEach(ball => {
         ball.age = (ball.age || 0) + dt;
+        if (advanceLaunchRail(ball, dt)) return;
         if (advanceRightAcrylicChute(ball, dt)) return;
         if (advanceWarpStage(ball, dt)) return;
         ball.prevX = ball.x;
@@ -1703,6 +1940,7 @@
         collideWithPlayfieldCircle(ball);
         collideWithLcdFrame(ball);
         collideWithAcrylicParts(ball);
+        collideWithUpperSupportArc(ball);
         collideWithWindmill(ball);
         collideWithPushButton(ball);
 
@@ -2085,10 +2323,10 @@
     function collideBalls(dt) {
       for (let i = 0; i < balls.length; i++) {
         const a = balls[i];
-        if (!a.live || a.warpStage || a.rightAcrylicStage) continue;
+        if (!a.live || a.launchRail || a.warpStage || a.rightAcrylicStage) continue;
         for (let j = i + 1; j < balls.length; j++) {
           const b = balls[j];
-          if (!b.live || b.warpStage || b.rightAcrylicStage) continue;
+          if (!b.live || b.launchRail || b.warpStage || b.rightAcrylicStage) continue;
           const dx = b.x - a.x;
           const dy = b.y - a.y;
           let dist = Math.hypot(dx, dy);
@@ -2321,6 +2559,71 @@
       return { x, y, dist: Math.hypot(px - x, py - y) };
     }
 
+    function upperSupportArcPoint(t) {
+      const arc = upperLaunchGuide.supportArc;
+      const u = 1 - t;
+      return {
+        x: u * u * arc.start.x + 2 * u * t * arc.control.x + t * t * arc.end.x,
+        y: u * u * arc.start.y + 2 * u * t * arc.control.y + t * t * arc.end.y
+      };
+    }
+
+    function collideBallWithUpperSupport(ball, a, b, thickness) {
+      const hit = nearestPointOnSegment(ball.x, ball.y, a.x, a.y, b.x, b.y);
+      const minDistance = ball.r + thickness;
+      // This is an open, one-sided receiver: only the lower half of a ball
+      // arriving from above can touch it. Balls can never be pinched below it.
+      if (hit.dist >= minDistance || ball.y > hit.y + ball.r * .25) return false;
+      const dist = Math.max(.01, hit.dist);
+      let nx = (ball.x - hit.x) / dist;
+      let ny = (ball.y - hit.y) / dist;
+      if (hit.dist <= .01 || ny > -.08) {
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const length = Math.hypot(dx, dy) || 1;
+        nx = dy / length;
+        ny = -dx / length;
+        if (ny > 0) {
+          nx *= -1;
+          ny *= -1;
+        }
+      }
+      const overlap = minDistance - dist;
+      ball.x += nx * overlap;
+      ball.y += ny * overlap;
+      const impact = ball.vx * nx + ball.vy * ny;
+      if (impact < 0) {
+        ball.vx -= (1 + .54) * impact * nx;
+        ball.vy -= (1 + .54) * impact * ny;
+      }
+      // Normal play always exits toward the open left side after the first
+      // support contact. Strong right shots use the scripted right route and
+      // never enter this collision path.
+      ball.vx = ball.rightShot
+        ? Math.max(.18, Math.abs(ball.vx))
+        : -Math.max(.18, Math.abs(ball.vx) * .8);
+      ball.vy = Math.min(ball.vy, -.045);
+      ball.glow = 1;
+      return true;
+    }
+
+    function collideWithUpperSupportArc(ball) {
+      if (!ball.live || ball.launchRail || ball.warpStage || ball.rightAcrylicStage) return;
+      let previousBoard = upperSupportArcPoint(0);
+      for (let i = 1; i <= 32; i++) {
+        const currentBoard = upperSupportArcPoint(i / 32);
+        const hit = collideBallWithUpperSupport(
+          ball,
+          { x: sx(previousBoard.x), y: sy(previousBoard.y) },
+          { x: sx(currentBoard.x), y: sy(currentBoard.y) },
+          Math.max(2.4, sx(upperLaunchGuide.supportArc.thickness))
+        );
+        if (hit) break;
+        previousBoard = currentBoard;
+      }
+
+    }
+
     function pointInCanvasPolygon(point, polygon) {
       let inside = false;
       for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
@@ -2332,9 +2635,8 @@
     }
 
     function guideBall(ball, dt) {
-      // The launch mechanism is abstracted to the top of the playfield. Only a
-      // brief rail-entry impulse is applied; after that, nails and parts alone
-      // determine the route. This avoids invisible path-following forces.
+      // After the visible launch rail releases the ball, only a brief settling
+      // impulse remains; nails and acrylic collisions determine the route.
       if (ball.age > 260) return;
       if (ball.rightShot) {
         ball.vx += .00034 * dt;
@@ -2749,6 +3051,9 @@
 
       drawBoardOrnaments(w, h);
       drawAcrylicParts(w, h);
+      drawBalls(ball => Boolean(ball.launchRail));
+      drawBalls(ball => Boolean(ball.warpStage));
+      drawWarpStage(w, h);
       drawBalls(ball => Boolean(ball.rightAcrylicStage));
       drawRushStartClaw(w, h);
       drawRightAcrylicChute(w, h);
@@ -2757,7 +3062,8 @@
       drawPockets();
       drawPins();
       drawPinEditorOverlay(w, h);
-      drawBalls(ball => !ball.rightAcrylicStage);
+      drawBalls(ball => !ball.launchRail && !ball.rightAcrylicStage && !ball.warpStage);
+      drawUpperSupportArc(w, h);
       drawWindmill(sx(hitAreas.windmill.x), sy(hitAreas.windmill.y), hitAreas.windmill.r / 720 * w);
       drawRightRouteLogo(w, h);
       drawParticles();
@@ -2980,7 +3286,6 @@
     function drawBoardOrnaments(w, h) {
       ctx.save();
       drawSideRoutePanels(w, h);
-      drawWarpStage(w, h);
       ctx.restore();
     }
 
@@ -3039,6 +3344,77 @@
       ctx.shadowColor = "rgba(78, 220, 255, .58)";
       ctx.shadowBlur = Math.max(8, w * .014);
       ctx.drawImage(acrylicGuardImage, guardX, guardY, guardWidth, guardHeight);
+      ctx.restore();
+    }
+
+    function traceUpperSupportArc() {
+      const arc = upperLaunchGuide.supportArc;
+      ctx.beginPath();
+      ctx.moveTo(sx(arc.start.x), sy(arc.start.y));
+      ctx.quadraticCurveTo(sx(arc.control.x), sy(arc.control.y), sx(arc.end.x), sy(arc.end.y));
+    }
+
+    function drawUpperSupportArc(w, h) {
+      const arc = upperLaunchGuide.supportArc;
+      if (upperCornerSupportReady) {
+        const visual = upperLaunchGuide.supportVisual;
+        ctx.save();
+        ctx.globalAlpha = .98;
+        ctx.shadowColor = "rgba(0,0,0,.68)";
+        ctx.shadowBlur = Math.max(4, sx(6));
+        ctx.drawImage(
+          upperCornerSupportImage,
+          sx(visual.x), sy(visual.y), visual.w / 720 * w, visual.h / 900 * h
+        );
+        ctx.restore();
+        return;
+      }
+
+      ctx.save();
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.shadowColor = "rgba(0,0,0,.72)";
+      ctx.shadowBlur = Math.max(4, sx(5));
+      traceUpperSupportArc();
+      ctx.strokeStyle = "rgba(15,24,32,.92)";
+      ctx.lineWidth = Math.max(7, sx(arc.thickness + 5));
+      ctx.stroke();
+
+      const acrylic = ctx.createLinearGradient(sx(arc.start.x), sy(arc.start.y), sx(arc.end.x), sy(arc.end.y));
+      acrylic.addColorStop(0, "rgba(102,227,255,.76)");
+      acrylic.addColorStop(.46, "rgba(232,250,255,.92)");
+      acrylic.addColorStop(.54, "rgba(232,250,255,.92)");
+      acrylic.addColorStop(1, "rgba(102,227,255,.76)");
+      ctx.shadowColor = "rgba(72,224,255,.62)";
+      ctx.shadowBlur = Math.max(5, sx(8));
+      traceUpperSupportArc();
+      ctx.strokeStyle = acrylic;
+      ctx.lineWidth = Math.max(4, sx(arc.thickness + 1));
+      ctx.stroke();
+
+      ctx.shadowBlur = 0;
+      traceUpperSupportArc();
+      ctx.strokeStyle = "rgba(255,255,255,.84)";
+      ctx.lineWidth = Math.max(1, sx(1.2));
+      ctx.stroke();
+
+      [arc.start, arc.end].forEach(point => {
+        ctx.fillStyle = "#b8c2ca";
+        ctx.strokeStyle = "#303944";
+        ctx.lineWidth = Math.max(1, sx(1.4));
+        ctx.beginPath();
+        ctx.arc(sx(point.x), sy(point.y), Math.max(4, sx(6)), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      });
+
+      const stopper = upperLaunchGuide.stopper;
+      ctx.beginPath();
+      ctx.moveTo(sx(stopper.bx), sy(stopper.by));
+      ctx.lineTo(sx(stopper.ax), sy(stopper.ay));
+      ctx.strokeStyle = "rgba(207,220,228,.94)";
+      ctx.lineWidth = Math.max(3, sx(5));
+      ctx.stroke();
       ctx.restore();
     }
 
@@ -3136,9 +3512,13 @@
       const stageWidth = stageRight - stageLeft;
 
       if (centerWarpAcrylicReady) {
+        const visual = warpDevice.visual;
         ctx.save();
         ctx.globalAlpha = .94;
-        ctx.drawImage(centerWarpAcrylicImage, sx(161), sy(420), sx(390), sy(130));
+        ctx.drawImage(
+          centerWarpAcrylicImage,
+          sx(visual.x), sy(visual.y), sx(visual.w), sy(visual.h)
+        );
         ctx.globalAlpha = 1;
         const pulse = .72 + Math.sin(performance.now() / 230) * .18;
         ctx.shadowColor = "rgba(86, 224, 255, .88)";
@@ -4211,11 +4591,15 @@
       const min = Number(els.power.min);
       const max = Number(els.power.max);
       const power = autoShotPower(rightShot);
-      els.power.value = power;
+      els.power.value = state.launchPower;
+      if (els.handleAdjust) els.handleAdjust.value = state.launchPower;
       const t = (power - min) / (max - min);
       const degrees = -45 + t * 135;
       els.handleNeedle.style.transform = `translate(-50%, -92%) rotate(${degrees}deg)`;
-      els.handlePower.textContent = state.holdPause ? "HOLD" : rightShot ? "RIGHT" : "LEFT";
+      const mode = state.holdPause
+        ? "HOLD"
+        : power >= upperLaunchGuide.rightThreshold ? "RIGHT" : power < upperLaunchGuide.weakThreshold ? "RETURN" : "LEFT";
+      els.handlePower.textContent = `${mode} ${power}`;
     }
 
     function syncMachineView() {
@@ -5172,12 +5556,16 @@
       }
     });
     document.getElementById("down").addEventListener("click", () => {
-      syncHandleUi();
+      setLaunchPower(state.launchPower - 2, true);
     });
     document.getElementById("up").addEventListener("click", () => {
-      syncHandleUi();
+      setLaunchPower(state.launchPower + 2, true);
     });
-    els.power.addEventListener("input", syncHandleUi);
+    els.power.addEventListener("input", () => setLaunchPower(els.power.value, true));
+    els.handleAdjust?.addEventListener("input", () => setLaunchPower(els.handleAdjust.value, true));
+    ["pointerdown", "click", "keydown"].forEach(type => {
+      els.handleAdjust?.addEventListener(type, event => event.stopPropagation());
+    });
     els.nailSetting.addEventListener("input", () => {
       updateNailSettingUi();
       const setting = currentNailSetting();
@@ -5196,7 +5584,14 @@
         toggleAutoFire();
         return;
       }
-      if (event.key === "ArrowRight" || event.key === "ArrowUp" || event.key === "ArrowLeft" || event.key === "ArrowDown") event.preventDefault();
+      if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+        event.preventDefault();
+        setLaunchPower(state.launchPower + 2, true);
+      }
+      if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+        event.preventDefault();
+        setLaunchPower(state.launchPower - 2, true);
+      }
     });
     window.addEventListener("resize", () => {
       fitCanvas();
@@ -5211,6 +5606,7 @@
     syncMachineView();
     rebuildStatusHud();
     updateNailSettingUi();
+    setLaunchPower(state.launchPower);
     syncAutoUi();
     syncForceJackpotUi();
     syncPinEditorUi();
@@ -5220,7 +5616,7 @@
     updateHud();
     addLog("スペック: 1/400、初当たり5R、RUSH中10R固定");
     addLog("図柄別RUSH: 7=確定 / 1・3=50% / 2・5=25%");
-    addLog("AUTOで連続発射。通常は左ルート、当たり中は右打ち。");
+    addLog("左上発射口から短いガイドへ発射。強度44以上で左打ち、84以上で右打ち。");
     requestAnimationFrame(loop);
   </script>
 </body>
