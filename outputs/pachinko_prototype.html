@@ -290,31 +290,38 @@
       z-index: 5;
       width: clamp(104px, 14vw, 136px);
       aspect-ratio: 1;
-      border: 1px solid rgba(255, 211, 106, .38);
+      border: 0;
       border-radius: 50%;
-      background:
-        radial-gradient(circle at 36% 30%, rgba(255, 255, 255, .55), transparent 12%),
-        radial-gradient(circle at 50% 50%, #414955 0 22%, #202a36 23% 45%, #111820 46% 65%, #080c11 66%);
-      box-shadow: 0 12px 30px rgba(0, 0, 0, .45), inset 0 0 0 7px rgba(255, 255, 255, .06), inset 0 0 24px rgba(255, 211, 106, .18);
+      background: transparent;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, .45);
       cursor: grab;
       touch-action: none;
       user-select: none;
     }
 
+    .launch-handle::before {
+      content: "";
+      position: absolute;
+      inset: -8%;
+      z-index: 0;
+      border-radius: 50%;
+      background: url("pachinko_rescue_launch_handle_v1.png") center / contain no-repeat;
+      filter: drop-shadow(0 8px 12px rgba(0, 0, 0, .62));
+      pointer-events: none;
+    }
+
     .launch-handle:active,
     .launch-handle.active {
       cursor: grabbing;
-      box-shadow: 0 0 34px rgba(255, 211, 106, .44), 0 12px 30px rgba(0, 0, 0, .45), inset 0 0 0 7px rgba(255, 255, 255, .08);
+      box-shadow: 0 0 34px rgba(102, 227, 255, .44), 0 12px 30px rgba(0, 0, 0, .45);
+    }
+
+    .launch-handle.active::before {
+      filter: brightness(1.12) saturate(1.12) drop-shadow(0 0 12px rgba(102, 227, 255, .62));
     }
 
     .handle-knob {
-      position: absolute;
-      inset: 13%;
-      border-radius: 50%;
-      background:
-        conic-gradient(from -80deg, rgba(255, 211, 106, .2), rgba(102, 227, 255, .22), rgba(255, 111, 159, .18), rgba(255, 211, 106, .2)),
-        radial-gradient(circle at 50% 50%, #242d39, #0a0f15 70%);
-      border: 1px solid rgba(255, 255, 255, .20);
+      display: none;
     }
 
     .handle-needle {
@@ -328,15 +335,11 @@
       transform-origin: 50% 92%;
       background: linear-gradient(#fff4c2, #ffb337);
       box-shadow: 0 0 16px rgba(255, 211, 106, .55);
+      z-index: 2;
     }
 
     .handle-center {
-      position: absolute;
-      inset: 34%;
-      border-radius: 50%;
-      background: radial-gradient(circle at 35% 28%, #ffffff, #ffd36a 32%, #955c14 100%);
-      border: 1px solid rgba(255, 255, 255, .35);
-      box-shadow: 0 4px 14px rgba(0, 0, 0, .36);
+      display: none;
     }
 
     .handle-power {
@@ -352,9 +355,42 @@
       color: #fff;
       font-size: 12px;
       font-weight: 800;
+      z-index: 3;
       text-align: center;
       font-variant-numeric: tabular-nums;
       pointer-events: none;
+    }
+
+    .handle-adjust {
+      position: absolute;
+      left: 50%;
+      bottom: 29px;
+      z-index: 4;
+      width: 70%;
+      height: 14px;
+      transform: translateX(-50%);
+      accent-color: #66e3ff;
+      cursor: ew-resize;
+      touch-action: pan-x;
+    }
+
+    .handle-adjust::-webkit-slider-runnable-track {
+      height: 5px;
+      border: 1px solid rgba(255,255,255,.34);
+      border-radius: 999px;
+      background: linear-gradient(90deg, #66e3ff 0 68%, #ff5262 68% 100%);
+      box-shadow: 0 0 8px rgba(72, 224, 255, .48);
+    }
+
+    .handle-adjust::-webkit-slider-thumb {
+      width: 15px;
+      height: 15px;
+      margin-top: -6px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      background: #ffd36a;
+      box-shadow: 0 0 8px rgba(255, 211, 106, .72);
+      appearance: none;
     }
 
     .side {
@@ -470,14 +506,16 @@
       height: 92px;
       border-radius: 8px;
       border: 1px solid rgba(255, 255, 255, .24);
-      background: linear-gradient(#fdf7d8, #dfe8f2 48%, #f9fdff);
-      color: #111827;
+      background-color: #050a14;
+      background-image: url("pachinko_rescue_reel_symbols_v2.png");
+      background-repeat: no-repeat;
+      background-size: 300% 300%;
+      background-position: var(--symbol-x, 50%) var(--symbol-y, 50%);
+      color: transparent;
       display: grid;
       place-items: center;
-      font-size: 42px;
-      font-weight: 900;
       box-shadow: inset 0 -8px 18px rgba(0, 0, 0, .18);
-      font-variant-numeric: tabular-nums;
+      overflow: hidden;
     }
 
     .reel.spin {
@@ -790,6 +828,61 @@
         font-size: 36px;
       }
     }
+
+    /* Fixed playfield contract: resizing the browser may reveal scrollbars,
+       but it never changes physics coordinates or the nail gauge. */
+    html,
+    body {
+      overflow-x: auto;
+    }
+
+    .app {
+      width: 1224px;
+      min-width: 1224px;
+      grid-template-columns: 844px 360px;
+      align-items: start;
+    }
+
+    .machine {
+      width: 844px;
+      min-width: 844px;
+      height: 1198px;
+      min-height: 1198px;
+    }
+
+    .machine.board-zoom {
+      width: 744px;
+      min-width: 744px;
+      height: 1008px;
+      min-height: 1008px;
+    }
+
+    .machine.board-zoom .zoom-controls {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .machine canvas {
+      inset: 122px auto auto 62px;
+      width: 720px;
+      height: 900px;
+    }
+
+    .machine.board-zoom canvas {
+      inset: 96px auto auto 12px;
+      width: 720px;
+      height: 900px;
+    }
+
+    .machine .screen,
+    .machine.board-zoom .screen {
+      width: 308px;
+      height: 250px;
+    }
+
+    .side {
+      width: 360px;
+    }
   </style>
 </head>
 <body>
@@ -816,9 +909,9 @@
       <section class="screen" id="centerScreen" role="button" tabindex="0" aria-expanded="false" title="液晶ズーム">
         <div class="lcd" id="lcd">
           <div class="reels" aria-live="polite">
-            <div class="reel" id="r0">7</div>
-            <div class="reel" id="r1">3</div>
-            <div class="reel" id="r2">5</div>
+            <div class="reel" id="r0" role="img" aria-label="7"></div>
+            <div class="reel" id="r1" role="img" aria-label="3"></div>
+            <div class="reel" id="r2" role="img" aria-label="5"></div>
           </div>
         </div>
         <div class="message" id="message">AUTOで打ち出し</div>
@@ -827,6 +920,7 @@
         <div class="handle-knob"></div>
         <div class="handle-needle" id="handleNeedle"></div>
         <div class="handle-center"></div>
+        <input class="handle-adjust" id="handleAdjust" type="range" min="32" max="92" value="62" aria-label="ハンドル強度">
         <div class="handle-power" id="handlePower">AUTO</div>
       </div>
     </section>
@@ -835,16 +929,17 @@
       <section class="controls">
         <div class="handle-row">
           <button class="icon-btn" id="down" title="弱い">-</button>
-          <input class="range" id="power" type="range" min="32" max="92" value="58" aria-label="打ち出し強さ">
+          <input class="range" id="power" type="range" min="32" max="92" value="62" aria-label="打ち出し強さ">
           <button class="icon-btn" id="up" title="強い">+</button>
         </div>
         <label class="setting-row">
           <span>釘設定</span>
           <input class="range" id="nailSetting" type="range" min="1" max="6" value="3" step="1" aria-label="釘設定">
-          <output id="nailSettingValue">3 / 20回</output>
+          <output id="nailSettingValue">17.9回/250玉・目標機械割95%</output>
         </label>
         <button class="main-btn" id="fire">AUTO START</button>
         <button class="speed-btn" id="speedMode" aria-pressed="false">SPEED x5 OFF</button>
+        <button class="speed-btn" id="forceJackpot" aria-pressed="false">大当たり強制 OFF</button>
         <div class="pin-tools">
           <button class="speed-btn" id="pinEdit" aria-pressed="false">PIN EDIT OFF</button>
           <select id="pinKind" aria-label="pin kind">
@@ -943,6 +1038,7 @@
       nailSettingValue: document.getElementById("nailSettingValue"),
       fire: document.getElementById("fire"),
       speedMode: document.getElementById("speedMode"),
+      forceJackpot: document.getElementById("forceJackpot"),
       viewOverview: document.getElementById("viewOverview"),
       viewBoard: document.getElementById("viewBoard"),
       pinEdit: document.getElementById("pinEdit"),
@@ -970,6 +1066,7 @@
       centerScreen: document.getElementById("centerScreen"),
       launchHandle: document.getElementById("launchHandle"),
       handleNeedle: document.getElementById("handleNeedle"),
+      handleAdjust: document.getElementById("handleAdjust"),
       handlePower: document.getElementById("handlePower"),
       lcd: document.getElementById("lcd"),
       log: document.getElementById("log"),
@@ -990,12 +1087,14 @@
       feverUntil: 0,
       autoTimer: null,
       autoFire: false,
+      lastShotAt: 0,
       holdPause: false,
       speedMode: false,
+      forceJackpot: false,
+      launchPower: 62,
       boardZoom: false,
       rightDeviceOpen: false,
       nailSetting: 3,
-      nailVariance: {},
       startMeter: 0,
       spillFlip: 1,
       pendingStarts: 0,
@@ -1004,6 +1103,10 @@
       rushStreak: 0,
       stRemaining: 0,
       pendingRush: "none",
+      bonusKind: "",
+      bonusTotalRounds: 0,
+      bonusEntries: 0,
+      bonusRevealAtRound: 0,
       pinEditor: false,
       selectedPin: -1,
       selectedPins: new Set(),
@@ -1078,48 +1181,238 @@
     }
 
     const maxHolds = 4;
+    const bonusPayoutPerRound = 300;
+    const bonusEntriesPerRound = 10;
+    const bonusPayoutPerEntry = bonusPayoutPerRound / bonusEntriesPerRound;
+    const rushStartPrize = 1;
+    // Long-run targets derived from the current game spec: 1/400 initial hit,
+    // 5R initial payout, 60%/75% ST100, 10R RUSH payout and 5 balls per START.
+    // One normal renewal cycle averages 486.4847 STARTs and 6447.3833 paid balls.
     const nailSettingTable = {
-      1: { spinsPer250: 21.0, startPerBall: 21.0 / 250 },
-      2: { spinsPer250: 23.1, startPerBall: 23.1 / 250 },
-      3: { spinsPer250: 25.3, startPerBall: 25.3 / 250 },
-      4: { spinsPer250: 27.4, startPerBall: 27.4 / 250 },
-      5: { spinsPer250: 30.5, startPerBall: 30.5 / 250 },
-      6: { spinsPer250: 34.4, startPerBall: 34.4 / 250 }
+      1: { machineRate: 80,  spinsPer250: 15.0909, hesoOpening: 0.0, roadBias: .044, hesoBias: .150 },
+      2: { machineRate: 90,  spinsPer250: 16.9773, hesoOpening: 0.8, roadBias: .046, hesoBias: .155 },
+      3: { machineRate: 95,  spinsPer250: 17.9205, hesoOpening: 1.6, roadBias: .048, hesoBias: .160 },
+      4: { machineRate: 101, spinsPer250: 19.0523, hesoOpening: 2.4, roadBias: .050, hesoBias: .165 },
+      5: { machineRate: 104, spinsPer250: 19.6182, hesoOpening: 3.2, roadBias: .052, hesoBias: .170 },
+      6: { machineRate: 110, spinsPer250: 20.7500, hesoOpening: 4.0, roadBias: .054, hesoBias: .175 }
     };
-    const startRouteCompensation = 1;
     const balls = [];
     const particles = [];
     const pins = [];
     const fixedPinRadius = 3;
     const physics = {
-      ballMassG: 5,
-      gravity: .0047,
-      airDrag: .00078,
-      rollingDrag: .00165,
-      maxSpeed: 1.68,
-      nailRestitution: .78,
-      wallRestitution: .61,
-      lcdRestitution: .56,
-      ballRestitution: .45,
-      randomNailScatter: .18
+      ballMassG: 5.5,
+      gravity: .0032,
+      airDrag: .00046,
+      rollingDrag: .00072,
+      maxSpeed: .88,
+      nailRestitution: .67,
+      wallRestitution: .54,
+      lcdRestitution: .50,
+      ballRestitution: .38,
+      randomNailScatter: .055
     };
     const pockets = [
-      { x: 360, y: 770, r: 12, type: "start", label: "START", color: "#66e3ff" },
+      { x: 360, y: 670, r: 18, type: "start", label: "START", color: "#66e3ff" },
       { x: 632, y: 568, r: 38, type: "attacker", label: "V", color: "#ffd36a" },
       { x: 360, y: 900, r: 72, shape: "semicircle", type: "out", label: "", color: "#8895a4" }
     ];
     const hitAreas = {
-      lcd: { x: 118, y: 166, w: 484, h: 363 },
+      lcd: { x: 129, y: 130, w: 430, h: 323 },
       rightDevice: { x: 642, y: 568, w: 72, h: 136 },
-      windmill: { x: 76, y: 512, r: 24 },
+      windmill: { x: 164, y: 477, r: 22, collisionR: 12 },
       launch: { x: 54, y: 74, r: 18 },
       push: { x: 82, y: 824, r: 49 },
       handle: { x: 650, y: 838, r: 76 }
     };
+    const warpDevice = {
+      visual: { x: 190, y: 455, w: 340, h: 108 },
+      entry: { x: 218, y: 486, r: 17 },
+      stage: { left: 253, right: 467, y: 502 }
+    };
+    const rightAcrylicChute = {
+      x: 560,
+      y: 92,
+      w: 144,
+      h: 466,
+      source: { x: 185, y: 245, w: 485, h: 1552 },
+      branchSource: { x: 400, y: 1240, w: 430, h: 560 },
+      branchDest: { x: 594, y: 386, w: 110, h: 172 },
+      rushStart: { x: 675, y: 532, r: 17 },
+      commonPath: [
+        { x: 624, y: 98 },
+        { x: 652, y: 126 },
+        { x: 612, y: 166 },
+        { x: 652, y: 210 },
+        { x: 612, y: 255 },
+        { x: 652, y: 305 },
+        { x: 612, y: 350 },
+        { x: 652, y: 400 },
+        { x: 612, y: 450 }
+      ],
+      bonusExit: [
+        { x: 632, y: 522 },
+        { x: 632, y: 568 }
+      ],
+      rushExit: [
+        { x: 626, y: 466 },
+        { x: 650, y: 480 },
+        { x: 666, y: 505 },
+        { x: 675, y: 532 }
+      ]
+    };
+    const upperLaunchGuide = {
+      center: { x: 360, y: 180 },
+      track: { rx: 256, ry: 114 },
+      launcher: { x: -12, y: 190 },
+      leftJoin: { x: 104, y: 180 },
+      supportVisual: { x: 103, y: 78, w: 475, h: 103 },
+      supportArc: {
+        start: { x: 138, y: 122 },
+        control: { x: 360, y: 66 },
+        end: { x: 552, y: 122 },
+        thickness: 6
+      },
+      weakThreshold: 44,
+      rightThreshold: 84,
+      stopper: { ax: 548, ay: 88, bx: 566, by: 126, thickness: 7 }
+    };
     const acrylicParts = [];
     const layoutStorageKey = "pachinkoPrototypeDefaultLayoutV1";
 
-    const symbols = ["1", "2", "3", "5", "7", "救", "急"];
+    const symbols = ["1", "2", "3", "5", "7", "救", "急", "隊"];
+    const standardJackpotSymbols = ["1", "2", "3", "5", "7"];
+    const initialRushEntryRates = {
+      "1": .50,
+      "2": .25,
+      "3": .50,
+      "5": .25,
+      "7": 1
+    };
+    const rescueRushLine = ["救", "急", "隊"];
+    const rescueRushPayout = 300;
+    const rescueRushJackpotShare = .10;
+    const symbolPositions = {
+      "1": [0, 0],
+      "2": [50, 0],
+      "3": [100, 0],
+      "5": [0, 50],
+      "7": [50, 50],
+      "救": [100, 50],
+      "急": [0, 100],
+      "隊": [50, 100]
+    };
+
+    function setReelSymbol(reel, symbol) {
+      const position = symbolPositions[symbol] || symbolPositions["7"];
+      reel.dataset.symbol = symbol;
+      reel.setAttribute("aria-label", symbol);
+      reel.style.setProperty("--symbol-x", `${position[0]}%`);
+      reel.style.setProperty("--symbol-y", `${position[1]}%`);
+    }
+
+    function setReelSymbols(values) {
+      els.reels.forEach((reel, index) => setReelSymbol(reel, values[index] ?? values[0] ?? "7"));
+    }
+
+    function isRescueRushLine(values) {
+      return rescueRushLine.every((symbol, index) => values[index] === symbol);
+    }
+
+    function rollMissLine() {
+      let values;
+      do {
+        values = els.reels.map(() => symbols[Math.floor(Math.random() * symbols.length)]);
+      } while ((values[0] === values[1] && values[1] === values[2]) || isRescueRushLine(values));
+      return values;
+    }
+
+    function settleWinningLine() {
+      els.reels.forEach(reel => reel.classList.remove("spin"));
+      if (state.rushMode === "none" && Math.random() < rescueRushJackpotShare) {
+        setReelSymbols(rescueRushLine);
+        awardRescueRushLine();
+        return;
+      }
+      const symbol = standardJackpotSymbols[Math.floor(Math.random() * standardJackpotSymbols.length)];
+      setReelSymbols([symbol, symbol, symbol]);
+      jackpot(symbol);
+    }
+
+    function rushEntryHint(symbol) {
+      const rate = initialRushEntryRates[symbol] ?? .50;
+      return rate >= 1 ? "RUSH確定" : `RUSH信頼度${Math.round(rate * 100)}%`;
+    }
+
+    function awardRescueRushLine() {
+      state.jackpots++;
+      state.sinceJackpotSpins = 0;
+      state.balls += rescueRushPayout;
+      state.balance += rescueRushPayout;
+      state.payout += rescueRushPayout;
+      state.pendingRush = "none";
+      state.rushMode = "rush";
+      state.rushStreak = 0;
+      enterRushSt();
+      message(`救急隊揃い +${rescueRushPayout}pt RUSH確定`);
+      addLog(`<span class="hit">救・急・隊 +${rescueRushPayout}pt RUSH確定</span>`);
+      updateHud();
+    }
+    const rescueBackgroundImage = new Image();
+    rescueBackgroundImage.src = "pachinko_rescue_background.png";
+    let rescueBackgroundReady = false;
+    rescueBackgroundImage.addEventListener("load", () => {
+      rescueBackgroundReady = true;
+    });
+    const rescueTitleImage = new Image();
+    rescueTitleImage.src = "pachinko_rescue_title.png";
+    let rescueTitleReady = false;
+    rescueTitleImage.addEventListener("load", () => {
+      rescueTitleReady = true;
+    });
+    const acrylicGuardImage = new Image();
+    acrylicGuardImage.src = "pachinko_acrylic_guard.png";
+    let acrylicGuardReady = false;
+    acrylicGuardImage.addEventListener("load", () => {
+      acrylicGuardReady = true;
+    });
+    const ambulanceLightBarImage = new Image();
+    ambulanceLightBarImage.src = "pachinko_ambulance_light_bar.png";
+    let ambulanceLightBarReady = false;
+    ambulanceLightBarImage.addEventListener("load", () => {
+      ambulanceLightBarReady = true;
+    });
+    const startRescueGateImage = new Image();
+    startRescueGateImage.src = "pachinko_start_rescue_gate.png";
+    let startRescueGateReady = false;
+    startRescueGateImage.addEventListener("load", () => {
+      startRescueGateReady = true;
+    });
+    const rightAcrylicChuteImage = new Image();
+    rightAcrylicChuteImage.src = "pachinko_right_acrylic_chute_v2.png";
+    let rightAcrylicChuteReady = false;
+    let rushStartClawVisual = 0;
+    rightAcrylicChuteImage.addEventListener("load", () => {
+      rightAcrylicChuteReady = true;
+    });
+    const rushStartClawImage = new Image();
+    rushStartClawImage.src = "pachinko_rush_start_single_claw_v3.png";
+    let rushStartClawReady = false;
+    rushStartClawImage.addEventListener("load", () => {
+      rushStartClawReady = true;
+    });
+    const centerWarpAcrylicImage = new Image();
+    centerWarpAcrylicImage.src = "pachinko_center_warp_acrylic_v3.png";
+    let centerWarpAcrylicReady = false;
+    centerWarpAcrylicImage.addEventListener("load", () => {
+      centerWarpAcrylicReady = true;
+    });
+    const upperCornerSupportImage = new Image();
+    upperCornerSupportImage.src = "pachinko_upper_corner_support_v1.png";
+    let upperCornerSupportReady = false;
+    upperCornerSupportImage.addEventListener("load", () => {
+      upperCornerSupportReady = true;
+    });
     const ballImage = new Image();
     ballImage.src = "pachinko_ball.png";
     let ballImageReady = false;
@@ -1133,20 +1426,32 @@
       nailImageReady = true;
     });
     let lastTime = performance.now();
+    let physicsAccumulator = 0;
+    const fixedPhysicsStep = 1000 / 240;
     let spinLock = false;
 
     function setupPins() {
       pins.length = 0;
-      const add = (x, y, kind = "normal", r = 3.1) => pins.push({ x, y, r, kind });
+      const add = (x, y, kind = "normal", r = 3.1) => {
+        if (pins.some(pin => Math.hypot(pin.x - x, pin.y - y) < 18)) return;
+        pins.push({ x, y, r, kind });
+      };
       const line = (x1, y1, x2, y2, count, kind = "normal", r = 3.1) => {
-        for (let i = 0; i < count; i++) {
-          const t = count === 1 ? 0 : i / (count - 1);
+        const length = Math.hypot(x2 - x1, y2 - y1);
+        const safeCount = Math.min(count, Math.max(2, Math.floor(length / 30) + 1));
+        for (let i = 0; i < safeCount; i++) {
+          const t = safeCount === 1 ? 0 : i / (safeCount - 1);
           add(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t, kind, r);
         }
       };
       const curve = (points, count, kind = "normal", r = 3.1) => {
-        for (let i = 0; i < count; i++) {
-          const t = count === 1 ? 0 : i / (count - 1);
+        const length = points.slice(1).reduce((sum, point, index) => {
+          const previous = points[index];
+          return sum + Math.hypot(point.x - previous.x, point.y - previous.y);
+        }, 0);
+        const safeCount = Math.min(count, Math.max(2, Math.floor(length / 30) + 1));
+        for (let i = 0; i < safeCount; i++) {
+          const t = safeCount === 1 ? 0 : i / (safeCount - 1);
           const seg = Math.min(points.length - 2, Math.floor(t * (points.length - 1)));
           const local = t * (points.length - 1) - seg;
           const a = points[seg];
@@ -1154,79 +1459,131 @@
           add(a.x + (b.x - a.x) * local, a.y + (b.y - a.y) * local, kind, r);
         }
       };
-
-      // Real-machine inspired routes: left launch rail, warp entrance, windmill, yorikugi, doukugi, heso, and right-shot path.
-      curve([{ x: 48, y: 118 }, { x: 48, y: 214 }, { x: 54, y: 330 }, { x: 64, y: 456 }], 12, "warp", 2.7);
-      curve([{ x: 84, y: 132 }, { x: 82, y: 250 }, { x: 88, y: 374 }, { x: 112, y: 526 }], 12, "normal", 2.7);
-      curve([{ x: 118, y: 116 }, { x: 180, y: 130 }, { x: 246, y: 118 }, { x: 320, y: 144 }], 9, "spill", 2.6);
-      curve([{ x: 600, y: 116 }, { x: 538, y: 130 }, { x: 474, y: 118 }, { x: 400, y: 144 }], 9, "spill", 2.6);
-      line(236, 154, 124, 214, 6, "normal", 2.6);
-      line(484, 154, 596, 214, 6, "normal", 2.6);
-      line(104, 278, 58, 388, 7, "warp", 2.65);
-      line(142, 292, 92, 410, 7, "normal", 2.65);
-      line(116, 436, 60, 500, 5, "spill", 2.7);
-      line(132, 462, 92, 536, 5, "road", 2.75);
-      line(58, 548, 136, 552, 5, "road", 2.75);
-      line(112, 566, 206, 590, 6, "road", 2.75);
-      line(180, 600, 274, 632, 6, "road", 2.8);
-      line(254, 646, 336, 684, 6, "road", 2.8);
-      line(318, 690, 360, 718, 4, "road", 2.85);
-      line(96, 642, 54, 732, 5, "spill", 2.7);
-      line(156, 644, 108, 748, 6, "spill", 2.7);
-      line(224, 676, 176, 792, 6, "spill", 2.7);
-
-      line(282, 706, 340, 734, 5, "heso", 2.85);
-      line(438, 706, 380, 734, 5, "heso", 2.85);
-      add(326, 748, "heso", 3.05);
-      add(394, 748, "heso", 3.05);
-      add(346, 766, "heso", 2.95);
-      add(374, 766, "heso", 2.95);
-      line(304, 792, 336, 824, 4, "spill", 2.8);
-      line(416, 792, 384, 824, 4, "spill", 2.8);
-      add(342, 816, "spill", 2.8);
-      add(378, 816, "spill", 2.8);
-      line(232, 792, 304, 852, 5, "spill", 2.75);
-      line(488, 792, 416, 852, 5, "spill", 2.75);
-      line(236, 832, 320, 862, 6, "spill", 2.65);
-      line(484, 832, 400, 862, 6, "spill", 2.65);
-
-      curve([{ x: 626, y: 86 }, { x: 668, y: 176 }, { x: 682, y: 344 }, { x: 658, y: 512 }], 20, "hot", 2.8);
-      line(626, 518, 682, 590, 6, "hot", 2.8);
-      line(588, 526, 674, 592, 7, "attacker", 2.9);
-      line(638, 622, 512, 704, 9, "attacker", 2.9);
-      line(456, 742, 512, 704, 6, "attacker", 2.8);
-      line(556, 704, 640, 748, 7, "attacker", 2.8);
-
-      for (let row = 0; row < 8; row++) {
-        const y = 138 + row * 66;
-        const count = row % 2 ? 7 : 8;
-        const offset = row % 2 ? 40 : 18;
-        for (let col = 0; col < count; col++) {
-          const x = offset + col * 96;
-          const nearLcd = x > 100 && x < 620 && y > 132 && y < 548;
-          const nearStart = Math.hypot(x - 360, y - 790) < 104;
-          const leftRoute = x < 230 && y > 420 && y < 710;
-          const roadRoute = x > 190 && x < 350 && y > 600 && y < 760;
-          const hesoRoute = x > 250 && x < 470 && y > 690 && y < 850;
-          const onDevice = x > 590 && y > 490 && y < 650;
-          if (!nearLcd && !nearStart && !leftRoute && !roadRoute && !hesoRoute && !onDevice) add(x, y, "normal", 2.6);
+      const staggered = (x1, x2, y1, rows, stepX, stepY, evenKind = "normal", oddKind = "spill", r = 2.7) => {
+        for (let row = 0; row < rows; row++) {
+          const offset = row % 2 ? stepX / 2 : 0;
+          for (let x = x1 + offset; x <= x2; x += stepX) {
+            add(x, y1 + row * stepY, row % 2 ? oddKind : evenKind, r);
+          }
         }
+      };
+
+      // Modern P-machine normal route derived from the current LCD bounds.
+      // The left lane is wide enough for a 5.5 g ball, while the lower apron
+      // visibly branches toward WARP, START, and the side spill paths.
+      const lcd = hitAreas.lcd;
+      const lcdLeft = lcd.x;
+      const lcdRight = lcd.x + lcd.w;
+      const lcdTop = lcd.y;
+      const lcdBottom = lcd.y + lcd.h;
+      const leftInner = lcdLeft - 17;
+      const leftMid = lcdLeft - 48;
+
+      // Keep the entire crown above the LCD nail-free. The open support arc
+      // handles the upper-ball motion without creating pin interference.
+      curve([{ x: 46, y: 170 }, { x: 46, y: 252 }, { x: 53, y: 354 }, { x: 68, y: 446 }], 12, "warp", 2.7);
+
+      // Two boundary rows and one staggered center row make the left lane
+      // lively without placing nails behind the enlarged LCD.
+      curve([
+        { x: leftInner, y: lcdTop + 16 },
+        { x: leftInner - 4, y: lcdTop + 116 },
+        { x: leftInner + 3, y: lcdTop + 224 },
+        { x: leftInner + 16, y: lcdBottom + 10 }
+      ], 12, "spill", 2.7);
+      for (let row = 0; row < 9; row++) {
+        const y = lcdTop + 36 + row * 31;
+        add(leftMid + (row % 2 ? 12 : 0), y, row % 3 === 1 ? "road" : "normal", 2.7);
       }
-      pins.push(
-        { x: 64, y: 574, r: 2.9, kind: "road" },
-        { x: 114, y: 574, r: 2.9, kind: "road" },
-        { x: 156, y: 616, r: 2.8, kind: "road" },
-        { x: 216, y: 638, r: 2.8, kind: "road" },
-        { x: 270, y: 664, r: 2.8, kind: "road" },
-        { x: 316, y: 692, r: 2.8, kind: "road" },
-        { x: 330, y: 716, r: 2.8, kind: "heso" },
-        { x: 390, y: 716, r: 2.8, kind: "heso" },
-        { x: 318, y: 748, r: 2.8, kind: "spill" },
-        { x: 402, y: 748, r: 2.8, kind: "spill" },
-        { x: 504, y: 692, r: 2.9, kind: "attacker" },
-        { x: 590, y: 692, r: 2.9, kind: "attacker" },
-        { x: 486, y: 668, r: 3.2, kind: "attacker" }
-      );
+
+      // The upper yori directs some balls into the visible WARP mouth. A
+      // parallel outer path deliberately bypasses it and continues downward.
+      curve([
+        { x: leftInner + 16, y: lcdBottom + 10 },
+        { x: 137, y: 470 },
+        { x: 158, y: 480 },
+        { x: 181, y: 486 }
+      ], 5, "road", 2.85);
+      curve([
+        { x: 68, y: 446 },
+        { x: 82, y: 500 },
+        { x: 118, y: 548 },
+        { x: 184, y: 584 },
+        { x: 270, y: 612 }
+      ], 11, "spill", 2.8);
+
+      // Nails below the acrylic begin only after its visible lower edge. This
+      // prevents the stage animation from appearing to pass through nails.
+      line(190, 578, 315, 612, 6, "road", 2.85);
+      line(530, 578, 405, 612, 6, "road", 2.85);
+      line(158, 614, 300, 640, 7, "spill", 2.75);
+      line(562, 614, 420, 640, 7, "spill", 2.75);
+
+      // Michi nails feed the START shoulder from both sides. The straight
+      // center chute used by the warp reservation remains nail-free.
+      curve([{ x: 60, y: 572 }, { x: 120, y: 596 }, { x: 220, y: 614 }, { x: 320, y: 630 }], 11, "road", 2.9);
+      curve([{ x: 660, y: 572 }, { x: 600, y: 596 }, { x: 500, y: 614 }, { x: 400, y: 630 }], 11, "road", 2.9);
+      line(82, 620, 50, 716, 7, "spill", 2.7);
+      line(154, 646, 118, 744, 7, "spill", 2.7);
+      line(218, 674, 184, 768, 7, "spill", 2.7);
+
+      // Heso entrance nails and lower spill fan.
+      line(270, 602, 342, 628, 6, "heso", 2.95);
+      line(450, 602, 378, 628, 6, "heso", 2.95);
+      add(342, 642, "heso", 3.05);
+      add(378, 642, "heso", 3.05);
+      add(322, 682, "spill", 2.9);
+      add(398, 682, "spill", 2.9);
+      line(296, 712, 338, 748, 5, "spill", 2.8);
+      line(424, 712, 382, 748, 5, "spill", 2.8);
+      line(232, 738, 302, 804, 6, "spill", 2.75);
+      line(488, 738, 418, 804, 6, "spill", 2.75);
+      line(222, 812, 320, 840, 7, "spill", 2.65);
+      line(498, 812, 400, 840, 7, "spill", 2.65);
+
+      // The jackpot route is a molded acrylic chute. It intentionally uses no
+      // nails from the upper entrance through the V-shaped attacker funnel.
+
+      // Sparse lower-field scatter nails; routes above remain readable.
+      [
+        [72, 782], [96, 830], [142, 846], [188, 860],
+        [524, 786], [568, 810], [610, 834], [654, 782],
+        [520, 650], [554, 676], [592, 730], [460, 690],
+        [92, 724], [132, 744], [174, 760], [214, 780],
+        [506, 748], [548, 764], [590, 786], [632, 808]
+      ].forEach(([x, y]) => add(x, y, "normal", 2.7));
+
+      // The scripted warp ball must not appear to pass through nails. Remove
+      // nails overlapping the tray, its straight center chute, and the visible
+      // START notch itself.
+      for (let i = pins.length - 1; i >= 0; i--) {
+        const pin = pins[i];
+        const visual = warpDevice.visual;
+        const overlapsLcd =
+          pin.x >= lcdLeft - 10 && pin.x <= lcdRight + 10 &&
+          pin.y >= lcdTop - 10 && pin.y <= lcdBottom + 10;
+        const overlapsStage =
+          pin.x >= visual.x - 6 && pin.x <= visual.x + visual.w + 6 &&
+          pin.y >= visual.y - 6 && pin.y <= visual.y + visual.h + 8;
+        const overlapsWarpMouth = Math.hypot(
+          pin.x - warpDevice.entry.x,
+          pin.y - warpDevice.entry.y
+        ) < warpDevice.entry.r + 12;
+        const overlapsWindmill = Math.hypot(
+          pin.x - hitAreas.windmill.x,
+          pin.y - hitAreas.windmill.y
+        ) < hitAreas.windmill.r + 8;
+        const blocksCenterChute =
+          Math.abs(pin.x - 360) < 32 &&
+          pin.y > visual.y + visual.h && pin.y <= 632;
+        const overlapsStartNotch = Math.abs(pin.x - 360) <= 30 && pin.y > 632 && pin.y <= 654;
+        const overlapsRightAcrylic = pin.x >= 548 && pin.y >= 76 && pin.y <= 590;
+        const overlapsUpperCrown = pin.y < lcdTop + 24;
+        if (
+          overlapsLcd || overlapsStage || overlapsWarpMouth || overlapsWindmill ||
+          blocksCenterChute || overlapsStartNotch || overlapsRightAcrylic || overlapsUpperCrown
+        ) pins.splice(i, 1);
+      }
     }
 
     function setupDefaultAcrylicParts() {
@@ -1235,42 +1592,20 @@
         {
           type: "curve",
           label: "左外周レール",
-          thickness: 24,
-          points: [{ x: 72, y: 120 }, { x: 54, y: 342 }, { x: 104, y: 548 }]
-        },
-        {
-          type: "curve",
-          label: "左寄りガイド",
-          thickness: 28,
-          points: [{ x: 106, y: 480 }, { x: 122, y: 566 }, { x: 248, y: 624 }]
-        },
-        {
-          type: "curve",
-          label: "道釘上アクリル",
-          thickness: 22,
-          points: [{ x: 182, y: 592 }, { x: 254, y: 650 }, { x: 344, y: 692 }]
+          thickness: 10,
+          points: [{ x: 72, y: 120 }, { x: 54, y: 300 }, { x: 74, y: 420 }]
         },
         {
           type: "curve",
           label: "右打ちレール",
-          thickness: 26,
+          thickness: 14,
           points: [{ x: 642, y: 94 }, { x: 690, y: 328 }, { x: 640, y: 560 }]
         },
         {
           type: "curve",
           label: "右アタッカー導入",
-          thickness: 24,
+          thickness: 14,
           points: [{ x: 672, y: 584 }, { x: 604, y: 642 }, { x: 516, y: 704 }]
-        },
-        {
-          type: "poly",
-          label: "液晶左肩",
-          points: [{ x: 98, y: 184 }, { x: 138, y: 160 }, { x: 166, y: 514 }, { x: 118, y: 536 }]
-        },
-        {
-          type: "poly",
-          label: "液晶右肩",
-          points: [{ x: 582, y: 160 }, { x: 622, y: 184 }, { x: 602, y: 536 }, { x: 554, y: 514 }]
         }
       ].forEach(part => acrylicParts.push(normalizeAcrylic(part)));
       removeHesoAcrylicHelpers();
@@ -1278,7 +1613,10 @@
     }
 
     function removeHesoAcrylicHelpers() {
-      const blocked = new Set(["ステージ受け", "ヘソ寄せ", "ステージ左返し", "ステージ右返し", "ヘソ左肩", "ヘソ右肩"]);
+      const blocked = new Set([
+        "ステージ受け", "ヘソ寄せ", "ステージ左返し", "ステージ右返し", "ヘソ左肩", "ヘソ右肩",
+        "液晶左肩", "液晶右肩", "左外周レール", "右打ちレール", "右アタッカー導入"
+      ]);
       for (let i = acrylicParts.length - 1; i >= 0; i--) {
         if (blocked.has(acrylicParts[i].label || "")) acrylicParts.splice(i, 1);
       }
@@ -1314,56 +1652,89 @@
       return state.bonusActive;
     }
 
-    function autoShotPower(rightShot = isJackpotActive()) {
-      return rightShot ? 88 : 62;
+    function isRushStActive() {
+      return !state.bonusActive && state.rushMode !== "none" && state.stRemaining > 0;
     }
 
-    function nailVarianceFor(setting) {
-      if (state.nailVariance[setting] == null) {
-        state.nailVariance[setting] = Math.round((Math.random() * 4 - 2) * 10) / 10;
+    function isRushStartClawOpen() {
+      return isRushStActive();
+    }
+
+    function isRightShotActive() {
+      return isJackpotActive() || isRushStActive();
+    }
+
+    function autoShotPower(rightShot = isRightShotActive()) {
+      const manualPower = Math.max(32, Math.min(92, Number(state.launchPower) || 62));
+      return rightShot ? Math.max(88, manualPower) : manualPower;
+    }
+
+    function setLaunchPower(value, announce = false) {
+      const min = Number(els.power.min);
+      const max = Number(els.power.max);
+      state.launchPower = Math.max(min, Math.min(max, Math.round(Number(value) || 62)));
+      els.power.value = state.launchPower;
+      if (els.handleAdjust) els.handleAdjust.value = state.launchPower;
+      syncHandleUi();
+      if (announce) {
+        const route = state.launchPower < upperLaunchGuide.weakThreshold
+          ? "返却域"
+          : state.launchPower >= upperLaunchGuide.rightThreshold ? "右打ち域" : "左打ち域";
+        message(`ハンドル強度 ${state.launchPower}（${route}）`);
       }
-      return state.nailVariance[setting];
     }
 
     function currentNailSetting() {
       const base = nailSettingTable[state.nailSetting] || nailSettingTable[3];
-      const spinsPer250 = Math.max(1, Math.round((base.spinsPer250 + nailVarianceFor(state.nailSetting)) * 10) / 10);
       return {
         ...base,
-        baseSpinsPer250: base.spinsPer250,
-        variance: Math.round((spinsPer250 - base.spinsPer250) * 10) / 10,
-        spinsPer250,
-        startPerBall: spinsPer250 / 250
+        startPerBall: base.spinsPer250 / 250,
+        displaySpinsPer250: base.spinsPer250.toFixed(1)
       };
     }
 
     function updateNailSettingUi() {
-      state.nailSetting = Math.max(1, Math.min(6, Number(els.nailSetting?.value || state.nailSetting || 3)));
+      const nextSetting = Math.max(1, Math.min(6, Number(els.nailSetting?.value || state.nailSetting || 3)));
+      if (nextSetting !== state.nailSetting) state.startMeter = 0;
+      state.nailSetting = nextSetting;
       const setting = currentNailSetting();
-      const sign = setting.variance >= 0 ? "+" : "";
-      if (els.nailSettingValue) els.nailSettingValue.textContent = `${state.nailSetting} / ${setting.spinsPer250}蝗・(${sign}${setting.variance})`;
+      if (els.nailSettingValue) {
+        els.nailSettingValue.textContent = `${setting.displaySpinsPer250}回/250玉・目標機械割${setting.machineRate}%`;
+      }
     }
 
     function spawnBall() {
+      const power = autoShotPower();
+      const rightShot = isRightShotActive() || power >= upperLaunchGuide.rightThreshold;
       if (!isJackpotActive() && state.pendingStarts >= maxHolds) {
-        pauseAutoForHold();
+        pauseAutoForFullHold();
         return;
       }
+      if (isJackpotActive()) {
+        const remainingEntries = Math.max(0, bonusEntriesPerRound - state.bonusEntries);
+        const ballsInRightChute = balls.filter(ball => ball.live && (ball.rightAcrylicStage || ball.launchRail?.rightShot)).length;
+        if (ballsInRightChute >= remainingEntries) return;
+      } else if (isRushStActive()) {
+        const availableHolds = Math.max(0, maxHolds - state.pendingStarts);
+        const ballsInRightChute = balls.filter(ball => ball.live && (ball.rightAcrylicStage || ball.launchRail?.rightShot)).length;
+        if (ballsInRightChute >= availableHolds) return;
+      }
+      if (balls.filter(ball => ball.live && ball.launchRail).length >= 4) return;
       if (state.balls <= 0) {
         message("持ち玉がありません。リセットで再試行。");
         return;
       }
+      const shotAt = performance.now();
+      if (state.lastShotAt && shotAt - state.lastShotAt < fireIntervalMs() * .82) return;
+      state.lastShotAt = shotAt;
       state.balls--;
       state.fired++;
       state.balance--;
-      const rightShot = isJackpotActive();
-      const power = autoShotPower(rightShot);
-      const launch = hitAreas.launch;
       balls.push({
-        x: sx(launch.x),
-        y: sy(launch.y),
-        vx: rightShot ? power * .0082 : power * .0028,
-        vy: rightShot ? -power * .0029 : power * .0039,
+        x: sx(upperLaunchGuide.launcher.x),
+        y: sy(upperLaunchGuide.launcher.y),
+        vx: 0,
+        vy: 0,
         r: Math.max(5, canvas.clientWidth * .0105),
         massG: physics.ballMassG,
         live: true,
@@ -1371,9 +1742,140 @@
         age: 0,
         angle: Math.random() * Math.PI * 2,
         trail: [],
-        rightShot
+        rightShot,
+        shotPower: power,
+        startGateChecked: false,
+        startMouthEntered: false,
+        warpUsed: false,
+        warpStage: null,
+        launchRail: {
+          elapsed: 0,
+          duration: rightShot ? 780 : 760 - (power - 32) * 2,
+          power,
+          weak: power < upperLaunchGuide.weakThreshold,
+          rightShot,
+          exit: isJackpotActive() ? "bonus" : "rush",
+          refunded: false
+        },
+        rightAcrylicStage: null
       });
       updateHud();
+    }
+
+    function cubicPoint(p0, p1, p2, p3, t) {
+      const u = 1 - t;
+      const uu = u * u;
+      const tt = t * t;
+      return {
+        x: uu * u * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + tt * t * p3.x,
+        y: uu * u * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + tt * t * p3.y
+      };
+    }
+
+    function launchLiftPoint(t) {
+      return cubicPoint(
+        upperLaunchGuide.launcher,
+        { x: 18, y: 136 },
+        { x: 74, y: 150 },
+        upperLaunchGuide.leftJoin,
+        Math.max(0, Math.min(1, t))
+      );
+    }
+
+    function launchArcPoint(arcProgress) {
+      const angle = Math.PI - Math.max(0, Math.min(1, arcProgress)) * Math.PI;
+      return {
+        x: upperLaunchGuide.center.x + upperLaunchGuide.track.rx * Math.cos(angle),
+        y: upperLaunchGuide.center.y - upperLaunchGuide.track.ry * Math.sin(angle)
+      };
+    }
+
+    function launchTrackPoint(route, progress) {
+      if (route.weak) {
+        const reach = .30 + (route.power - 32) / Math.max(1, upperLaunchGuide.weakThreshold - 33) * .62;
+        const roundTrip = progress < .5 ? progress * 2 : (1 - progress) * 2;
+        return launchLiftPoint(reach * Math.max(0, roundTrip));
+      }
+
+      const liftEnd = route.rightShot ? .58 : .70;
+      if (progress <= liftEnd) return launchLiftPoint(progress / liftEnd);
+
+      const normalPowerRange = Math.max(1, upperLaunchGuide.rightThreshold - upperLaunchGuide.weakThreshold - 1);
+      const normalT = Math.max(0, Math.min(1, (route.power - upperLaunchGuide.weakThreshold) / normalPowerRange));
+      const targetArc = route.rightShot
+        ? .78 + Math.max(0, route.power - upperLaunchGuide.rightThreshold) / 8 * .12
+        : .06 + normalT * .45;
+      const arcEnd = route.rightShot ? .90 : 1;
+      if (progress <= arcEnd) {
+        return launchArcPoint(targetArc * (progress - liftEnd) / Math.max(.01, arcEnd - liftEnd));
+      }
+      const arcPoint = launchArcPoint(targetArc);
+      const rightEntry = rightAcrylicChute.commonPath[0];
+      const t = (progress - arcEnd) / Math.max(.01, 1 - arcEnd);
+      return {
+        x: arcPoint.x + (rightEntry.x - arcPoint.x) * t,
+        y: arcPoint.y + (rightEntry.y - arcPoint.y) * t
+      };
+    }
+
+    function refundWeakLaunch(ball, route) {
+      if (route.refunded) return;
+      route.refunded = true;
+      ball.live = false;
+      ball.launchRail = null;
+      state.balls += 1;
+      state.balance += 1;
+      state.fired = Math.max(0, state.fired - 1);
+      burst(ball.x, ball.y, "#66e3ff", 10);
+      const text = `強度${route.power}: 発射口へ戻り 1pt返却`;
+      message(text);
+      addLog(text);
+      updateHud();
+    }
+
+    function advanceLaunchRail(ball, dt) {
+      const route = ball.launchRail;
+      if (!route || !ball.live) return false;
+      ball.prevX = ball.x;
+      ball.prevY = ball.y;
+      ball.trail.push({ x: ball.x, y: ball.y });
+      if (ball.trail.length > 8) ball.trail.shift();
+      route.elapsed += dt;
+      const progress = Math.min(1, route.elapsed / Math.max(1, route.duration));
+      const point = launchTrackPoint(route, progress);
+      ball.x = sx(point.x);
+      ball.y = sy(point.y);
+      ball.vx = (ball.x - ball.prevX) / Math.max(1, dt);
+      ball.vy = (ball.y - ball.prevY) / Math.max(1, dt);
+      ball.angle += Math.hypot(ball.vx, ball.vy) * dt / Math.max(1, ball.r) * .22;
+      ball.glow = Math.max(.7, ball.glow * .998);
+      if (progress < 1) return true;
+
+      if (route.weak) {
+        refundWeakLaunch(ball, route);
+        return true;
+      }
+
+      ball.launchRail = null;
+      if (route.rightShot) {
+        ball.x = sx(rightAcrylicChute.commonPath[0].x);
+        ball.y = sy(rightAcrylicChute.commonPath[0].y);
+        ball.vx = 0;
+        ball.vy = 0;
+        ball.rightAcrylicStage = {
+          elapsed: 0,
+          duration: 3000 + Math.random() * 180,
+          offset: (Math.random() - .5) * 4,
+          exit: route.exit
+        };
+        return true;
+      }
+
+      state.startMeter += currentNailSetting().startPerBall;
+      ball.age = 0;
+      ball.vx = .07 + (route.power - upperLaunchGuide.weakThreshold) * .0045 + (Math.random() - .5) * .015;
+      ball.vy = .055 + Math.random() * .018;
+      return true;
     }
 
     function burst(x, y, color, count = 18) {
@@ -1387,8 +1889,21 @@
     function update(dt) {
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
-      state.rightDeviceOpen = isJackpotActive() && Math.sin(performance.now() / 180) > -.92;
-      const scaledPins = pins.map(p => ({ x: sx(p.x), y: sy(p.y), r: Math.max(1.45, fixedPinRadius / 720 * w) }));
+      // Keep the ambulance gate fully open throughout the bonus. The visual
+      // flap and the physical checker now agree, avoiding timing-based losses.
+      state.rightDeviceOpen = isJackpotActive();
+      const settingInfo = currentNailSetting();
+      const hesoOpening = settingInfo.hesoOpening;
+      const scaledPins = pins.map(p => {
+        const adjustableHeso = p.kind === "heso" && p.y >= 620;
+        const direction = p.x < 360 ? -1 : p.x > 360 ? 1 : 0;
+        return {
+          x: sx(p.x + (adjustableHeso ? direction * hesoOpening : 0)),
+          y: sy(p.y),
+          r: Math.max(1.45, fixedPinRadius / 720 * w),
+          kind: p.kind
+        };
+      });
       const scaledPockets = pockets.map(p => ({
         ...p,
         x: sx(p.x),
@@ -1400,6 +1915,9 @@
 
       balls.forEach(ball => {
         ball.age = (ball.age || 0) + dt;
+        if (advanceLaunchRail(ball, dt)) return;
+        if (advanceRightAcrylicChute(ball, dt)) return;
+        if (advanceWarpStage(ball, dt)) return;
         ball.prevX = ball.x;
         ball.prevY = ball.y;
         ball.trail.push({ x: ball.x, y: ball.y });
@@ -1422,6 +1940,7 @@
         collideWithPlayfieldCircle(ball);
         collideWithLcdFrame(ball);
         collideWithAcrylicParts(ball);
+        collideWithUpperSupportArc(ball);
         collideWithWindmill(ball);
         collideWithPushButton(ball);
 
@@ -1454,44 +1973,55 @@
             if (dot < 0) {
               ball.vx -= (1 + physics.nailRestitution) * dot * nx;
               ball.vy -= (1 + physics.nailRestitution) * dot * ny;
+              if (pin.kind === "road") ball.vx += Math.sign(sx(360) - ball.x) * settingInfo.roadBias;
+              if (pin.kind === "heso") ball.vx += Math.sign(sx(360) - ball.x) * settingInfo.hesoBias;
             }
             const tangentX = -ny;
             const tangentY = nx;
             const tangent = ball.vx * tangentX + ball.vy * tangentY;
-            ball.vx -= tangentX * tangent * .035;
-            ball.vy -= tangentY * tangent * .035;
+            ball.vx -= tangentX * tangent * .012;
+            ball.vy -= tangentY * tangent * .012;
             ball.vx += (Math.random() - .5) * physics.randomNailScatter;
-            ball.vy += (Math.random() - .5) * physics.randomNailScatter * .55;
+            ball.vy += (Math.random() - .5) * physics.randomNailScatter * .35;
             ball.glow = 1;
           }
         });
 
-        if (!ball.rightShot && ball.x > sx(455) && ball.y < sy(760)) {
-          const routeX = ball.y < sy(560) ? sx(142) : sx(318);
-          ball.vx += (routeX - ball.x) * .00018 * dt;
-          if (ball.vx > 1.1) ball.vx *= .72;
-        }
-        if (ball.rightShot && ball.x < sx(520) && ball.y < sy(560)) {
-          ball.vx += .010 * dt;
-        }
+        if (enterWarpIfHit(ball)) return;
 
         for (const pocket of scaledPockets) {
           if (pocket.type === "attacker" && !state.rightDeviceOpen) continue;
-          const hit = pocketHit(ball, pocket);
-          if (hit && ball.live) {
-            if (pocket.type === "start" && ball.rightShot) continue;
-            if (pocket.type === "start" && hit === "out") {
+          if (pocket.type === "start") {
+            const captured = collideWithStartGate(ball, pocket);
+            if (captured && ball.live) {
               ball.live = false;
-              handlePocket({ ...pocket, type: "out", color: "#8895a4" }, ball.x, ball.y);
+              handlePocket(pocket, ball.x, ball.y);
               break;
             }
+            continue;
+          }
+          const hit = pocketHit(ball, pocket);
+          if (hit && ball.live) {
             ball.live = false;
             handlePocket(pocket, ball.x, ball.y);
             break;
           }
         }
 
-        if (ball.y > h + 60) ball.live = false;
+        const postCollisionSpeed = Math.hypot(ball.vx, ball.vy);
+        ball.slowAge = postCollisionSpeed < .095 ? (ball.slowAge || 0) + dt : 0;
+        if (ball.live && ball.slowAge > 200) {
+          ball.stuckBumps = (ball.stuckBumps || 0) + 1;
+          const rollDirection = ball.stuckBumps % 2 ? -1 : 1;
+          const escapeBoost = .09 + Math.min(.08, ball.stuckBumps * .015);
+          ball.vx += rollDirection * escapeBoost;
+          ball.vy = Math.max(ball.vy, .10 + Math.min(.10, ball.stuckBumps * .02));
+          ball.slowAge = 0;
+        } else if (postCollisionSpeed > .18) {
+          ball.stuckBumps = 0;
+        }
+
+        if (ball.y > h + 60 || ball.age > 12000) ball.live = false;
       });
 
       collideBalls(dt);
@@ -1530,7 +2060,9 @@
         const bottomCatch = withinBottom && ball.y + ball.r >= bottom - ball.r * .25;
         const lowerBackflow = ball.vy < 0 && withinBottom && ball.y - ball.r <= bottom && ball.y > top + pocket.h * .45;
         if (bottomCatch || lowerBackflow) return "out";
-        if (topEntry) return "start";
+        if (topEntry && !ball.startGateChecked) {
+          return consumeStartMeter(ball);
+        }
         return false;
       }
       if (pocket.shape === "semicircle" || pocket.type === "out") {
@@ -1539,23 +2071,262 @@
         const dist = Math.hypot(dx, dy);
         return ball.vy > 0 && ball.y + ball.r >= pocket.y - pocket.r && dist < pocket.r + ball.r * .65;
       }
-      if (pocket.type === "start") {
-        const dist = Math.hypot(ball.x - pocket.x, ball.y - pocket.y);
-        const prevDist = Math.hypot((ball.prevX ?? ball.x) - pocket.x, (ball.prevY ?? ball.y) - pocket.y);
-        const gate = pocket.r + ball.r * .38;
-        const crossed = prevDist > gate && dist <= gate;
-        return ball.vy > 0 && (crossed || dist < pocket.r);
+      const captureRadius = pocket.type === "attacker" ? pocket.r + ball.r * .8 : pocket.r;
+      return Math.hypot(ball.x - pocket.x, ball.y - pocket.y) < captureRadius;
+    }
+
+    function collideWithStartGate(ball, pocket) {
+      const outerRadius = pocket.r + sx(12);
+      const dx = ball.x - pocket.x;
+      const dy = ball.y - pocket.y;
+      const distance = Math.hypot(dx, dy);
+      const previousY = ball.prevY ?? ball.y;
+      // Commit the entry just above the first possible rim contact so a ball
+      // that has visibly dropped into the notch can never be reflected back.
+      const mouthY = pocket.y - outerRadius * 1.36;
+      // Keep the physical opening compact, but let the setting meter feed a
+      // nearby downward-moving ball through the visible mouth. This preserves
+      // the configured long-run spin rate without allowing side entries.
+      const meterReady = state.startMeter >= 1;
+      const meterAssist = meterReady ? sx(24) : 0;
+      const mouthHalfWidth = outerRadius * .72 + meterAssist;
+      const descending = ball.vy > .02;
+      const crossedMouth = previousY <= mouthY && ball.y >= mouthY;
+      const insideMouthBand =
+        ball.y >= mouthY - ball.r &&
+        ball.y <= pocket.y - outerRadius * .58;
+
+      if (
+        !ball.startMouthEntered &&
+        !ball.rightShot &&
+        meterReady &&
+        descending &&
+        Math.abs(dx) <= mouthHalfWidth &&
+        (crossedMouth || (insideMouthBand && previousY < ball.y))
+      ) {
+        ball.startMouthEntered = Boolean(consumeStartMeter(ball));
       }
-      return Math.hypot(ball.x - pocket.x, ball.y - pocket.y) < pocket.r;
+
+      if (
+        ball.startMouthEntered &&
+        !ball.rightShot &&
+        descending &&
+        ball.y >= pocket.y - outerRadius * .72 &&
+        Math.abs(dx) <= outerRadius * .88 + meterAssist * .8
+      ) {
+        return true;
+      }
+
+      if (ball.startMouthEntered) {
+        ball.x += (pocket.x - ball.x) * .18;
+        ball.vx *= .78;
+      }
+
+      const angle = Math.atan2(dy, dx);
+      const topDelta = Math.abs(Math.atan2(Math.sin(angle + Math.PI / 2), Math.cos(angle + Math.PI / 2)));
+      const withinTopOpening = dy < 0 && topDelta < 1.15 && ball.startMouthEntered;
+      const contactDistance = outerRadius + ball.r;
+      if (distance >= contactDistance || withinTopOpening) return false;
+
+      const nx = distance > .01 ? dx / distance : 0;
+      const ny = distance > .01 ? dy / distance : -1;
+      const overlap = contactDistance - Math.max(distance, .01);
+      ball.x += nx * overlap;
+      ball.y += ny * overlap;
+      const impact = ball.vx * nx + ball.vy * ny;
+      if (impact < 0) {
+        const restitution = .72;
+        ball.vx -= (1 + restitution) * impact * nx;
+        ball.vy -= (1 + restitution) * impact * ny;
+      }
+      ball.vx += nx * .025;
+      ball.vy += ny * .025;
+      ball.startMouthEntered = false;
+      ball.glow = 1;
+      return false;
+    }
+
+    function advanceRightAcrylicChute(ball, dt) {
+      const route = ball.rightAcrylicStage;
+      if (!route || !ball.live) return false;
+
+      ball.prevX = ball.x;
+      ball.prevY = ball.y;
+      ball.trail.push({ x: ball.x, y: ball.y });
+      if (ball.trail.length > 7) ball.trail.shift();
+      ball.angle += .085 * dt;
+      ball.glow = Math.max(.62, ball.glow * .997);
+      route.elapsed += dt;
+
+      const progress = Math.min(1, route.elapsed / route.duration);
+      const exitPath = route.exit === "rush" ? rightAcrylicChute.rushExit : rightAcrylicChute.bonusExit;
+      const path = [...rightAcrylicChute.commonPath, ...exitPath];
+      const scaled = progress * (path.length - 1);
+      const index = Math.min(path.length - 2, Math.floor(scaled));
+      const local = Math.min(1, scaled - index);
+      const eased = local * local * (3 - 2 * local);
+      const start = path[index];
+      const end = path[index + 1];
+      const offsetFade = Math.sin(progress * Math.PI);
+      const nextX = start.x + (end.x - start.x) * eased + route.offset * offsetFade;
+      const nextY = start.y + (end.y - start.y) * eased;
+      ball.x = sx(nextX);
+      ball.y = sy(nextY);
+      ball.vx = (ball.x - ball.prevX) / Math.max(1, dt);
+      ball.vy = (ball.y - ball.prevY) / Math.max(1, dt);
+
+      if (progress < 1) return true;
+
+      ball.rightAcrylicStage = null;
+      ball.live = false;
+      if (route.exit === "bonus" && state.bonusActive && state.rightDeviceOpen) {
+        handlePocket(pockets[1], ball.x, ball.y);
+      } else if (route.exit === "rush" && isRushStartClawOpen()) {
+        handleRushStartEntry(ball.x, ball.y);
+      } else {
+        burst(ball.x, ball.y, "#79889a", 8);
+      }
+      return true;
+    }
+
+    function enterWarpIfHit(ball) {
+      if (!ball.live || ball.rightShot || ball.warpUsed || ball.warpStage) return false;
+      const entryX = sx(warpDevice.entry.x);
+      const entryY = sy(warpDevice.entry.y);
+      const entryRadius = warpDevice.entry.r / 720 * canvas.clientWidth;
+      const distance = Math.hypot(ball.x - entryX, ball.y - entryY);
+      if (ball.vy < -.08 || distance >= entryRadius + ball.r * .72) return false;
+
+      ball.warpUsed = true;
+      ball.warpStage = {
+        phase: "sweep",
+        elapsed: 0,
+        startX: sx(warpDevice.stage.left + 18),
+        startY: sy(warpDevice.stage.y)
+      };
+      ball.x = ball.warpStage.startX;
+      ball.y = ball.warpStage.startY;
+      ball.vx = 0;
+      ball.vy = 0;
+      ball.trail.length = 0;
+      ball.glow = 1;
+      burst(entryX, entryY, "#66e3ff", 14);
+      return true;
+    }
+
+    function advanceWarpStage(ball, dt) {
+      const route = ball.warpStage;
+      if (!route || !ball.live) return false;
+
+      ball.prevX = ball.x;
+      ball.prevY = ball.y;
+      ball.trail.push({ x: ball.x, y: ball.y });
+      if (ball.trail.length > 6) ball.trail.shift();
+      ball.angle += .08 * dt;
+      ball.glow = Math.max(.55, ball.glow * .996);
+      route.elapsed += dt;
+
+      if (route.phase === "sweep") {
+        const duration = 1900;
+        const progress = Math.min(1, route.elapsed / duration);
+        const cycles = 2.15;
+        const triangle = 2 / Math.PI * Math.asin(Math.sin(progress * Math.PI * 2 * cycles - Math.PI / 2));
+        ball.x = sx(360 + triangle * 106);
+        ball.y = sy(warpDevice.stage.y + 3 + (1 - Math.abs(triangle)) * 10);
+        ball.vx = (ball.x - ball.prevX) / Math.max(1, dt);
+        ball.vy = (ball.y - ball.prevY) / Math.max(1, dt);
+
+        if (progress >= 1) {
+          const centerReserved = Boolean(consumeStartMeter(ball));
+          route.phase = centerReserved ? "centerApproach" : (Math.random() < .5 ? "left" : "right");
+          route.elapsed = 0;
+          route.startX = ball.x;
+          route.startY = ball.y;
+          burst(ball.x, ball.y, centerReserved ? "#ff5b69" : "#66e3ff", 10);
+          addLog(centerReserved ? "WARP中央ルート → START" : `WARP${route.phase === "left" ? "左" : "右"}落ち`);
+        }
+        return true;
+      }
+
+      if (route.phase === "centerApproach") {
+        const duration = 330;
+        const rawProgress = Math.min(1, route.elapsed / duration);
+        const progress = rawProgress * rawProgress * (3 - 2 * rawProgress);
+        const targetX = sx(360);
+        const targetY = sy(warpDevice.stage.y + 15);
+        ball.x = route.startX + (targetX - route.startX) * progress;
+        ball.y = route.startY + (targetY - route.startY) * progress;
+        ball.vx = (ball.x - ball.prevX) / Math.max(1, dt);
+        ball.vy = (ball.y - ball.prevY) / Math.max(1, dt);
+        if (rawProgress >= 1) {
+          route.phase = "centerSpill";
+          route.elapsed = 0;
+          route.startX = ball.x;
+          route.startY = ball.y;
+        }
+        return true;
+      }
+
+      if (route.phase === "centerSpill") {
+        const duration = 260;
+        const rawProgress = Math.min(1, route.elapsed / duration);
+        const progress = rawProgress * rawProgress * (3 - 2 * rawProgress);
+        const targetY = sy(530);
+        ball.x = sx(360);
+        ball.y = route.startY + (targetY - route.startY) * progress;
+        ball.vx = (ball.x - ball.prevX) / Math.max(1, dt);
+        ball.vy = (ball.y - ball.prevY) / Math.max(1, dt);
+        if (rawProgress >= 1) {
+          route.phase = "centerDrop";
+          route.elapsed = 0;
+          route.startX = ball.x;
+          route.startY = ball.y;
+          burst(ball.x, ball.y, "#ff5b69", 8);
+        }
+        return true;
+      }
+
+      const centerRoute = route.phase === "centerDrop";
+      const duration = 420;
+      const rawProgress = Math.min(1, route.elapsed / duration);
+      const progress = rawProgress * rawProgress * (3 - 2 * rawProgress);
+      const side = route.phase === "left" ? -1 : 1;
+      const targetX = centerRoute ? sx(360) : sx(side < 0 ? 263 : 457);
+      const targetY = centerRoute ? sy(pockets[0].y - 18) : sy(530);
+      ball.x = route.startX + (targetX - route.startX) * progress;
+      ball.y = route.startY + (targetY - route.startY) * (centerRoute ? rawProgress * rawProgress : progress);
+      ball.vx = (ball.x - ball.prevX) / Math.max(1, dt);
+      ball.vy = (ball.y - ball.prevY) / Math.max(1, dt);
+
+      if (rawProgress < 1) return true;
+      if (centerRoute) {
+        ball.live = false;
+        handlePocket(pockets[0], ball.x, ball.y);
+        return true;
+      }
+
+      ball.warpStage = null;
+      ball.vx = side * (.30 + Math.random() * .08);
+      ball.vy = .34 + Math.random() * .08;
+      ball.glow = 1;
+      return true;
+    }
+
+    function consumeStartMeter(ball) {
+      if (ball.startGateChecked || ball.rightShot) return false;
+      if (state.startMeter < 1) return false;
+      ball.startGateChecked = true;
+      state.startMeter -= 1;
+      return "start";
     }
 
     function collideBalls(dt) {
       for (let i = 0; i < balls.length; i++) {
         const a = balls[i];
-        if (!a.live) continue;
+        if (!a.live || a.launchRail || a.warpStage || a.rightAcrylicStage) continue;
         for (let j = i + 1; j < balls.length; j++) {
           const b = balls[j];
-          if (!b.live) continue;
+          if (!b.live || b.launchRail || b.warpStage || b.rightAcrylicStage) continue;
           const dx = b.x - a.x;
           const dy = b.y - a.y;
           let dist = Math.hypot(dx, dy);
@@ -1599,10 +2370,11 @@
     function playfieldShape() {
       return {
         x: sx(360),
-        y: sy(492),
-        rx: sx(338),
-        ry: sy(418),
-        topY: sy(74)
+        y: sy(458),
+        rx: sx(350),
+        ry: sy(440),
+        topY: sy(18),
+        exponent: 4
       };
     }
 
@@ -1612,12 +2384,16 @@
       const dy = ball.y - field.y;
       const rx = field.rx - ball.r - 2;
       const ry = field.ry - ball.r - 2;
-      const normalized = Math.hypot(dx / rx, dy / ry);
+      const exponent = field.exponent || 2;
+      const normalized = Math.pow(
+        Math.pow(Math.abs(dx) / rx, exponent) + Math.pow(Math.abs(dy) / ry, exponent),
+        1 / exponent
+      );
       if (normalized <= 1 || normalized <= .01) return;
       ball.x = field.x + dx / normalized;
       ball.y = field.y + dy / normalized;
-      const nxRaw = dx / (rx * rx);
-      const nyRaw = dy / (ry * ry);
+      const nxRaw = Math.sign(dx) * Math.pow(Math.abs(dx) / rx, exponent - 1) / rx;
+      const nyRaw = Math.sign(dy) * Math.pow(Math.abs(dy) / ry, exponent - 1) / ry;
       const nLen = Math.max(.01, Math.hypot(nxRaw, nyRaw));
       const nx = nxRaw / nLen;
       const ny = nyRaw / nLen;
@@ -1711,7 +2487,7 @@
       const mill = hitAreas.windmill;
       const x = sx(mill.x);
       const y = sy(mill.y);
-      const r = mill.r / 720 * canvas.clientWidth;
+      const r = (mill.collisionR || mill.r * .55) / 720 * canvas.clientWidth;
       const dx = ball.x - x;
       const dy = ball.y - y;
       const dist = Math.hypot(dx, dy);
@@ -1783,6 +2559,71 @@
       return { x, y, dist: Math.hypot(px - x, py - y) };
     }
 
+    function upperSupportArcPoint(t) {
+      const arc = upperLaunchGuide.supportArc;
+      const u = 1 - t;
+      return {
+        x: u * u * arc.start.x + 2 * u * t * arc.control.x + t * t * arc.end.x,
+        y: u * u * arc.start.y + 2 * u * t * arc.control.y + t * t * arc.end.y
+      };
+    }
+
+    function collideBallWithUpperSupport(ball, a, b, thickness) {
+      const hit = nearestPointOnSegment(ball.x, ball.y, a.x, a.y, b.x, b.y);
+      const minDistance = ball.r + thickness;
+      // This is an open, one-sided receiver: only the lower half of a ball
+      // arriving from above can touch it. Balls can never be pinched below it.
+      if (hit.dist >= minDistance || ball.y > hit.y + ball.r * .25) return false;
+      const dist = Math.max(.01, hit.dist);
+      let nx = (ball.x - hit.x) / dist;
+      let ny = (ball.y - hit.y) / dist;
+      if (hit.dist <= .01 || ny > -.08) {
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const length = Math.hypot(dx, dy) || 1;
+        nx = dy / length;
+        ny = -dx / length;
+        if (ny > 0) {
+          nx *= -1;
+          ny *= -1;
+        }
+      }
+      const overlap = minDistance - dist;
+      ball.x += nx * overlap;
+      ball.y += ny * overlap;
+      const impact = ball.vx * nx + ball.vy * ny;
+      if (impact < 0) {
+        ball.vx -= (1 + .54) * impact * nx;
+        ball.vy -= (1 + .54) * impact * ny;
+      }
+      // Normal play always exits toward the open left side after the first
+      // support contact. Strong right shots use the scripted right route and
+      // never enter this collision path.
+      ball.vx = ball.rightShot
+        ? Math.max(.18, Math.abs(ball.vx))
+        : -Math.max(.18, Math.abs(ball.vx) * .8);
+      ball.vy = Math.min(ball.vy, -.045);
+      ball.glow = 1;
+      return true;
+    }
+
+    function collideWithUpperSupportArc(ball) {
+      if (!ball.live || ball.launchRail || ball.warpStage || ball.rightAcrylicStage) return;
+      let previousBoard = upperSupportArcPoint(0);
+      for (let i = 1; i <= 32; i++) {
+        const currentBoard = upperSupportArcPoint(i / 32);
+        const hit = collideBallWithUpperSupport(
+          ball,
+          { x: sx(previousBoard.x), y: sy(previousBoard.y) },
+          { x: sx(currentBoard.x), y: sy(currentBoard.y) },
+          Math.max(2.4, sx(upperLaunchGuide.supportArc.thickness))
+        );
+        if (hit) break;
+        previousBoard = currentBoard;
+      }
+
+    }
+
     function pointInCanvasPolygon(point, polygon) {
       let inside = false;
       for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
@@ -1794,110 +2635,25 @@
     }
 
     function guideBall(ball, dt) {
-      let target;
+      // After the visible launch rail releases the ball, only a brief settling
+      // impulse remains; nails and acrylic collisions determine the route.
+      if (ball.age > 260) return;
       if (ball.rightShot) {
-        if (ball.y < sy(140)) {
-          target = { x: sx(650), y: sy(92), force: .0022 };
-        } else if (ball.y < sy(330)) {
-          target = { x: sx(664), y: sy(360), force: .0016 };
-        } else if (ball.y < sy(545)) {
-          target = { x: sx(648), y: sy(565), force: state.rightDeviceOpen ? .0018 : .0012 };
-        } else {
-          target = { x: sx(612), y: sy(555), force: state.rightDeviceOpen ? .0022 : .0010 };
-        }
-      } else if (ball.y < sy(350)) {
-        target = { x: sx(84), y: sy(410), force: .00034 };
-      } else if (ball.y < sy(525)) {
-        target = { x: sx(96), y: sy(522), force: .00038 };
-      } else if (ball.y < sy(650)) {
-        target = { x: sx(250), y: sy(628), force: .00030 };
-      } else if (ball.y < sy(735)) {
-        target = { x: sx(344), y: sy(742), force: .00018 };
+        ball.vx += .00034 * dt;
+        ball.vy -= .00010 * dt;
       } else {
-        target = { x: sx(360), y: sy(812), force: .00014 };
-      }
-      const dx = target.x - ball.x;
-      const dy = target.y - ball.y;
-      const dist = Math.max(80, Math.hypot(dx, dy));
-      ball.vx += dx / dist * target.force * dt;
-      ball.vy += dy / dist * target.force * dt;
-
-      if (!ball.rightShot && ball.x < sx(150) && ball.y < sy(560)) {
-        ball.vx += .00025 * dt;
-        ball.vy += .0048 * dt;
-      }
-      if (!ball.rightShot && ball.age < 520 && ball.y < sy(190)) {
-        ball.vx += .0032 * dt;
-        if (ball.vx < .14) ball.vx = .14;
-      }
-      if (!ball.rightShot && ball.x > sx(430)) {
-        ball.vx += (sx(300) - ball.x) * .000022 * dt;
-        ball.vy += .0020 * dt;
-      }
-      if (!ball.rightShot) {
-        const wx = sx(hitAreas.windmill.x);
-        const wy = sy(hitAreas.windmill.y);
-        const dxw = ball.x - wx;
-        const dyw = ball.y - wy;
-        const dw = Math.hypot(dxw, dyw);
-        if (dw < sx(78) && dw > 1) {
-          const spin = Math.sin(performance.now() / 260);
-          const rightBias = .0007;
-          const sideKick = dxw < 0 ? .0005 : .0009;
-          ball.vx += (rightBias + sideKick + spin * .0012) * dt;
-          ball.vy += .0014 * dt;
-          ball.glow = Math.max(ball.glow, .82);
-        }
-      }
-      if (!ball.rightShot && ball.y > sy(500) && ball.y < sy(650) && ball.x > sx(62) && ball.x < sx(300)) {
-        if (!ball.leftLcdSplitSide) ball.leftLcdSplitSide = Math.random() < .46 ? 1 : -1;
-        const splitX = ball.leftLcdSplitSide > 0 ? sx(314) : sx(148);
-        ball.vx += (splitX - ball.x) * .000018 * dt;
-        ball.vy += .0024 * dt;
-        if (Math.abs(ball.x - sx(220)) < sx(42)) {
-          ball.vx += ball.leftLcdSplitSide * .0022 * dt;
-        }
-      }
-      if (!ball.rightShot && ball.y > sy(520)) {
-        const laneX = ball.y < sy(690) ? sx(304) : sx(356);
-        ball.vx += (laneX - ball.x) * .000008 * dt;
-      }
-      if (!ball.rightShot && ball.y > sy(690) && ball.y < sy(775) && Math.abs(ball.x - sx(360)) < sx(116)) {
-        const centerPull = sx(360) - ball.x;
-        ball.vx += centerPull * .000012 * dt;
-        ball.vy += .0018 * dt;
-      }
-      if (!ball.rightShot && ball.y > sy(790)) {
-        if (!ball.hesoSpillSide) {
-          state.spillFlip *= -1;
-          ball.hesoSpillSide = ball.x < sx(330) ? 1 : state.spillFlip;
-        }
-        const spillX = sx(ball.hesoSpillSide < 0 ? 322 : 398);
-        ball.vx += (spillX - ball.x) * .000012 * dt;
-        ball.vy += .0032 * dt;
-        if (ball.y > sy(812) && Math.abs(ball.x - sx(360)) < sx(38)) {
-          ball.vx += ball.hesoSpillSide * .0010 * dt;
-          ball.vy += .0042 * dt;
-        }
-      }
-      if (!ball.rightShot && ball.x > sx(470) && ball.y > sy(640)) {
-        ball.vx += (sx(360) - ball.x) * .000026 * dt;
-        ball.vy += .0032 * dt;
-      }
-      if (ball.rightShot) {
-        if (ball.x < sx(540) && ball.y < sy(420)) {
-          ball.vx += .007 * dt;
-        }
-        if (ball.x > sx(610) && ball.y > sy(260)) {
-          ball.vx += (sx(642) - ball.x) * .000075 * dt;
-          ball.vy += .010 * dt;
-        }
+        ball.vx += .00012 * dt;
+        ball.vy += .00020 * dt;
       }
     }
 
     function handlePocket(pocket, x, y) {
       if (pocket.type === "out") {
         burst(x, y, "#79889a", 8);
+        return;
+      }
+      if (pocket.type === "attacker" && state.bonusActive) {
+        handleBonusAttackerEntry(pocket, x, y);
         return;
       }
       state.wins++;
@@ -1913,16 +2669,62 @@
       updateHud();
     }
 
-    function queueStartSpin() {
+    function handleRushStartEntry(x, y) {
+      state.wins++;
+      state.balls += rushStartPrize;
+      state.balance += rushStartPrize;
+      state.payout += rushStartPrize;
+      burst(x, y, "#66e3ff", 20);
+      const queued = queueStartSpin("RUSH START", false);
+      if (queued) {
+        message(`RUSH START入賞 保留${state.pendingStarts}/${maxHolds}`);
+        addLog(`<span class="hit">RUSH START +${rushStartPrize}</span>`);
+      } else {
+        addLog(`RUSH START 保留満タン +${rushStartPrize}`);
+      }
+      updateHud();
+    }
+
+    function handleBonusAttackerEntry(pocket, x, y) {
+      if (!state.bonusActive || state.bonusTotalRounds <= 0) return;
+      state.wins++;
+      state.bonusEntries++;
+      state.balls += bonusPayoutPerEntry;
+      state.balance += bonusPayoutPerEntry;
+      state.payout += bonusPayoutPerEntry;
+      burst(x, y, state.bonusEntries % 2 ? "#ff5b77" : "#66e3ff", 18);
+      addLog(`<span class="hit">右アタッカー ${state.bonusEntries}/${bonusEntriesPerRound} +${bonusPayoutPerEntry}</span>`);
+
+      if (state.bonusEntries < bonusEntriesPerRound) {
+        message(`${state.mode} ${state.rounds + 1}/${state.bonusTotalRounds}R ${state.bonusEntries}/${bonusEntriesPerRound}`);
+        updateHud();
+        return;
+      }
+
+      state.rounds++;
+      state.bonusEntries = 0;
+      if (state.bonusKind === "initial" && state.rounds === state.bonusRevealAtRound) revealInitialRush();
+      message(`${state.mode} ${state.rounds}/${state.bonusTotalRounds}R +${bonusPayoutPerRound}`);
+      addLog(`<span class="hit">${state.rounds}R完了 +${bonusPayoutPerRound}</span>`);
+      burst(x, y, state.rounds % 2 ? "#ff5b77" : "#66e3ff", 28);
+
+      if (state.rounds >= state.bonusTotalRounds) {
+        const finishedKind = state.bonusKind;
+        finishBonus(finishedKind);
+      }
+      updateHud();
+    }
+
+    function queueStartSpin(source = "START", showStartBurst = true) {
       if (state.pendingStarts >= maxHolds) {
-        pauseAutoForHold();
+        pauseAutoForFullHold();
         updateHud();
         return false;
       }
       state.pendingStarts++;
-      burst(sx(360), sy(790), "#66e3ff", 14);
-      addLog("START通過 保留+1");
-      if (state.pendingStarts >= maxHolds) pauseAutoForHold();
+      if (showStartBurst) burst(sx(pockets[0].x), sy(pockets[0].y + 20), "#66e3ff", 14);
+      addLog(`${source}通過 保留+1 (${state.pendingStarts}/${maxHolds})`);
+      if (state.pendingStarts >= maxHolds) pauseAutoForFullHold();
       processStartQueue();
       updateHud();
       return true;
@@ -1931,7 +2733,7 @@
     function processStartQueue() {
       if (spinLock || state.bonusActive || state.pendingStarts <= 0) return;
       state.pendingStarts--;
-      resumeAutoFromHold();
+      resumeAutoFromFullHold();
       startSpin();
     }
 
@@ -1948,11 +2750,13 @@
       els.reels.forEach(r => r.classList.add("spin"));
 
       let ticks = 0;
-      const spinTicks = state.speedMode ? 5 : 17;
-      const spinInterval = state.speedMode ? 28 : 90;
+      // SPEED x5 accelerates ball launching, not the display spin itself.
+      // A real-machine-like 2.7 second spin lets START entries accumulate as holds.
+      const spinTicks = 30;
+      const spinInterval = 90;
       const interval = setInterval(() => {
         ticks++;
-        els.reels.forEach(r => r.textContent = symbols[Math.floor(Math.random() * symbols.length)]);
+        els.reels.forEach(r => setReelSymbol(r, symbols[Math.floor(Math.random() * symbols.length)]));
         if (ticks >= spinTicks) {
           clearInterval(interval);
           settleSpin();
@@ -1963,22 +2767,13 @@
 
     function settleSpin() {
       const hitChance = 1 / 400;
-      const hit = Math.random() < hitChance;
+      const forced = consumeForceJackpotFlag();
+      const hit = forced || Math.random() < hitChance;
       if (hit) {
-        const sym = Math.random() < .55 ? "7" : symbols[Math.floor(Math.random() * symbols.length)];
-        els.reels.forEach(r => {
-          r.classList.remove("spin");
-          r.textContent = sym;
-        });
-        jackpot(sym);
+        settleWinningLine();
       } else {
-        const a = symbols[Math.floor(Math.random() * symbols.length)];
-        let b = symbols[Math.floor(Math.random() * symbols.length)];
-        let c = symbols[Math.floor(Math.random() * symbols.length)];
-        if (a === b && b === c) c = symbols[(symbols.indexOf(c) + 1) % symbols.length];
-        els.reels[0].textContent = a;
-        els.reels[1].textContent = b;
-        els.reels[2].textContent = c;
+        const [a, b, c] = rollMissLine();
+        setReelSymbols([a, b, c]);
         els.reels.forEach(r => r.classList.remove("spin"));
         message("惜しい、次の入賞へ");
         addLog(`ハズレ ${a}${b}${c}`);
@@ -1991,11 +2786,11 @@
     function jackpot(symbol) {
       state.jackpots++;
       state.sinceJackpotSpins = 0;
-      state.pendingRush = rollInitialRush();
+      state.pendingRush = rollInitialRush(symbol);
       startBonus({
         rounds: 5,
         kind: "initial",
-        title: `${symbol}${symbol}${symbol} 初当たり5R`,
+        title: `${symbol}${symbol}${symbol} 初当たり5R ${rushEntryHint(symbol)}`,
         revealAtRound: 4
       });
     }
@@ -2004,22 +2799,13 @@
       const rushActive = state.rushMode !== "none" && state.stRemaining > 0;
       if (rushActive) state.stRemaining--;
       const hitChance = rushActive ? rushSpinChance() : 1 / 400;
-      const hit = Math.random() < hitChance;
+      const forced = consumeForceJackpotFlag();
+      const hit = forced || Math.random() < hitChance;
       if (hit) {
-        const sym = Math.random() < .55 ? "7" : symbols[Math.floor(Math.random() * symbols.length)];
-        els.reels.forEach(r => {
-          r.classList.remove("spin");
-          r.textContent = sym;
-        });
-        jackpot(sym);
+        settleWinningLine();
       } else {
-        const a = symbols[Math.floor(Math.random() * symbols.length)];
-        let b = symbols[Math.floor(Math.random() * symbols.length)];
-        let c = symbols[Math.floor(Math.random() * symbols.length)];
-        if (a === b && b === c) c = symbols[(symbols.indexOf(c) + 1) % symbols.length];
-        els.reels[0].textContent = a;
-        els.reels[1].textContent = b;
-        els.reels[2].textContent = c;
+        const [a, b, c] = rollMissLine();
+        setReelSymbols([a, b, c]);
         els.reels.forEach(r => r.classList.remove("spin"));
         if (rushActive && state.stRemaining <= 0) {
           resetToNormal("ST100回転終了 通常へ");
@@ -2053,11 +2839,11 @@
         });
         return;
       }
-      state.pendingRush = rollInitialRush();
+      state.pendingRush = rollInitialRush(symbol);
       startBonus({
         rounds: 5,
         kind: "initial",
-        title: `${symbol}${symbol}${symbol} 初当たり5R`,
+        title: `${symbol}${symbol}${symbol} 初当たり5R ${rushEntryHint(symbol)}`,
         revealAtRound: 4
       });
     }
@@ -2074,46 +2860,44 @@
       state.stRemaining = 0;
     }
 
-    function rollInitialRush() {
+    function rollInitialRush(symbol) {
+      const entryRate = initialRushEntryRates[symbol] ?? .50;
       const roll = Math.random();
-      if (roll < .01) return "upper";
-      if (roll < .51) return "rush";
+      if (roll < Math.min(.01, entryRate)) return "upper";
+      if (roll < entryRate) return "rush";
       return "none";
     }
 
     function startBonus({ rounds, kind, title, revealAtRound = 0 }) {
       clearInterval(state.bonusTimer);
-      state.rounds = rounds;
+      state.bonusTimer = null;
+      state.rounds = 0;
       state.bonusActive = true;
-      state.feverUntil = performance.now() + rounds * 900;
+      state.bonusKind = kind;
+      state.bonusTotalRounds = rounds;
+      state.bonusEntries = 0;
+      state.bonusRevealAtRound = revealAtRound;
+      state.feverUntil = 0;
       state.mode = kind === "rush" ? (state.rushMode === "upper" ? "上位RUSH BONUS" : "RUSH BONUS") : "初当たりBONUS";
       state.rightDeviceOpen = true;
       machine.classList.add("fever");
-      syncHandleUi();
+      startNormalSpeedBonusAuto();
       message(`${title} 右打ち`);
       addLog(`<span class="hit">${title} 開始</span>`);
-      payRound(rounds, kind, revealAtRound);
+      addLog(`1R ${bonusEntriesPerRound}入賞で${bonusPayoutPerRound}玉`);
+      updateHud();
     }
 
-    function payRound(rounds, kind, revealAtRound) {
-      const prize = 300;
-      let paid = 0;
-      state.bonusTimer = setInterval(() => {
-        if (paid >= rounds) {
-          clearInterval(state.bonusTimer);
-          state.bonusTimer = null;
-          finishBonus(kind);
-          return;
-        }
-        paid++;
-        state.balls += prize;
-        state.balance += prize;
-        state.payout += prize;
-        if (kind === "initial" && paid === revealAtRound) revealInitialRush();
-        message(`${state.mode} ${paid}/${rounds}R +${prize}`);
-        burst(sx(360), sy(646), paid % 2 ? "#ffd36a" : "#ff6f9f", 26);
-        updateHud();
-      }, 650);
+    function startNormalSpeedBonusAuto() {
+      state.speedMode = false;
+      state.autoFire = true;
+      state.holdPause = false;
+      state.lastShotAt = 0;
+      clearInterval(state.autoTimer);
+      state.autoTimer = null;
+      spawnBall();
+      state.autoTimer = setInterval(spawnBall, fireIntervalMs());
+      syncAutoUi();
     }
 
     function revealInitialRush() {
@@ -2139,12 +2923,20 @@
       updateHud();
     }
 
+    function clearBonusProgress() {
+      state.bonusKind = "";
+      state.bonusTotalRounds = 0;
+      state.bonusEntries = 0;
+      state.bonusRevealAtRound = 0;
+    }
+
     function finishBonus(kind) {
       state.bonusActive = false;
       state.rightDeviceOpen = false;
       machine.classList.remove("fever");
       state.rounds = 0;
-      syncHandleUi();
+      clearBonusProgress();
+      syncAutoUi();
 
       if (kind === "initial" && state.rushMode === "none") {
         resetToNormal("初当たり終了 通常へ");
@@ -2192,7 +2984,8 @@
       state.rightDeviceOpen = false;
       machine.classList.remove("fever");
       state.rounds = 0;
-      syncHandleUi();
+      clearBonusProgress();
+      syncAutoUi();
 
       if (kind === "initial" && state.rushMode === "none") {
         resetToNormal("初当たり終了 通常へ");
@@ -2213,6 +3006,7 @@
       state.mode = `${state.rushMode === "upper" ? "上位RUSH" : "RUSH"} ST100`;
       message(`${state.mode} 開始`);
       addLog(`<span class="hit">${state.mode} 開始</span>`);
+      syncAutoUi();
       updateHud();
       processStartQueue();
     }
@@ -2227,9 +3021,11 @@
       state.rightDeviceOpen = false;
       state.feverUntil = 0;
       state.rounds = 0;
+      clearBonusProgress();
       machine.classList.remove("fever");
       message(text);
       addLog(text);
+      syncAutoUi();
       updateHud();
       processStartQueue();
     }
@@ -2255,12 +3051,21 @@
 
       drawBoardOrnaments(w, h);
       drawAcrylicParts(w, h);
-      drawNailHighlights(w, h);
+      drawBalls(ball => Boolean(ball.launchRail));
+      drawBalls(ball => Boolean(ball.warpStage));
+      drawWarpStage(w, h);
+      drawBalls(ball => Boolean(ball.rightAcrylicStage));
+      drawRushStartClaw(w, h);
+      drawRightAcrylicChute(w, h);
       drawRightDevice(w, h);
+      drawRightAcrylicRushBranch(w, h);
       drawPockets();
       drawPins();
       drawPinEditorOverlay(w, h);
-      drawBalls();
+      drawBalls(ball => !ball.launchRail && !ball.rightAcrylicStage && !ball.warpStage);
+      drawUpperSupportArc(w, h);
+      drawWindmill(sx(hitAreas.windmill.x), sy(hitAreas.windmill.y), hitAreas.windmill.r / 720 * w);
+      drawRightRouteLogo(w, h);
       drawParticles();
       drawPlayfieldDebugOverlay(w, h);
       ctx.restore();
@@ -2300,13 +3105,13 @@
       bezel.addColorStop(1, "rgba(0,0,0,.56)");
       ctx.fillStyle = bezel;
       ctx.beginPath();
-      ctx.ellipse(w * .50, h * .50, w * .47, h * .45, 0, 0, Math.PI * 2);
+      playfieldPath(playfieldShape(), Math.max(8, w * .014));
       ctx.fill();
 
       ctx.strokeStyle = "rgba(255,255,255,.16)";
       ctx.lineWidth = Math.max(6, w * .012);
       ctx.beginPath();
-      ctx.ellipse(w * .50, h * .50, w * .465, h * .445, 0, 0, Math.PI * 2);
+      playfieldPath(playfieldShape(), Math.max(4, w * .008));
       ctx.stroke();
 
       const lower = ctx.createLinearGradient(0, h * .78, 0, h);
@@ -2347,29 +3152,43 @@
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, w, h);
 
-      const heat = ctx.createLinearGradient(w * .10, h * .12, w * .90, h * .70);
-      heat.addColorStop(0, "rgba(255, 181, 35, .30)");
-      heat.addColorStop(.28, "rgba(255, 71, 31, .30)");
-      heat.addColorStop(.50, "rgba(4, 255, 137, .12)");
-      heat.addColorStop(.78, "rgba(255, 150, 23, .26)");
-      heat.addColorStop(1, "rgba(255, 0, 60, .18)");
-      ctx.fillStyle = heat;
-      ctx.fillRect(0, 0, w, h);
+      if (rescueBackgroundReady) {
+        ctx.save();
+        ctx.globalAlpha = .90;
+        ctx.drawImage(rescueBackgroundImage, 0, 0, w, h);
+        ctx.restore();
 
-      ctx.save();
-      ctx.globalCompositeOperation = "screen";
-      for (let i = 0; i < 18; i++) {
-        const t = i / 17;
-        const y = h * (.17 + .50 * t);
-        const hue = i % 3 === 0 ? "rgba(255, 202, 56, .42)" : i % 3 === 1 ? "rgba(23, 238, 128, .28)" : "rgba(255, 64, 45, .32)";
-        ctx.strokeStyle = hue;
-        ctx.lineWidth = Math.max(2, w * (.005 + (i % 4) * .0015));
-        ctx.beginPath();
-        ctx.moveTo(w * (.06 + .03 * (i % 2)), y);
-        ctx.bezierCurveTo(w * .28, y - h * (.08 + .03 * Math.sin(i)), w * .58, y + h * (.10 - .04 * Math.cos(i)), w * .92, y - h * .04);
-        ctx.stroke();
+        const imageShade = ctx.createLinearGradient(0, 0, 0, h);
+        imageShade.addColorStop(0, "rgba(1, 7, 16, .08)");
+        imageShade.addColorStop(.48, "rgba(1, 7, 16, .14)");
+        imageShade.addColorStop(1, "rgba(1, 7, 16, .28)");
+        ctx.fillStyle = imageShade;
+        ctx.fillRect(0, 0, w, h);
+      } else {
+        const heat = ctx.createLinearGradient(w * .10, h * .12, w * .90, h * .70);
+        heat.addColorStop(0, "rgba(255, 181, 35, .30)");
+        heat.addColorStop(.28, "rgba(255, 71, 31, .30)");
+        heat.addColorStop(.50, "rgba(4, 255, 137, .12)");
+        heat.addColorStop(.78, "rgba(255, 150, 23, .26)");
+        heat.addColorStop(1, "rgba(255, 0, 60, .18)");
+        ctx.fillStyle = heat;
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+        for (let i = 0; i < 18; i++) {
+          const t = i / 17;
+          const y = h * (.17 + .50 * t);
+          const hue = i % 3 === 0 ? "rgba(255, 202, 56, .42)" : i % 3 === 1 ? "rgba(23, 238, 128, .28)" : "rgba(255, 64, 45, .32)";
+          ctx.strokeStyle = hue;
+          ctx.lineWidth = Math.max(2, w * (.005 + (i % 4) * .0015));
+          ctx.beginPath();
+          ctx.moveTo(w * (.06 + .03 * (i % 2)), y);
+          ctx.bezierCurveTo(w * .28, y - h * (.08 + .03 * Math.sin(i)), w * .58, y + h * (.10 - .04 * Math.cos(i)), w * .92, y - h * .04);
+          ctx.stroke();
+        }
+        ctx.restore();
       }
-      ctx.restore();
 
       const plate = ctx.createLinearGradient(0, h * .08, 0, h * .90);
       plate.addColorStop(0, "rgba(255,255,255,.12)");
@@ -2449,103 +3268,361 @@
     function playfieldPath(field, offset = 0) {
       const rx = field.rx + offset;
       const ry = field.ry + offset;
-      const topY = field.y - ry;
-      const bottomY = field.y + ry;
-      ctx.moveTo(field.x, topY);
-      ctx.bezierCurveTo(field.x + rx * .88, topY + ry * .04, field.x + rx, field.y + ry * .36, field.x + rx * .76, field.y + ry * .72);
-      ctx.bezierCurveTo(field.x + rx * .48, bottomY - ry * .02, field.x - rx * .48, bottomY - ry * .02, field.x - rx * .76, field.y + ry * .72);
-      ctx.bezierCurveTo(field.x - rx, field.y + ry * .36, field.x - rx * .88, topY + ry * .04, field.x, topY);
+      const exponent = field.exponent || 2;
+      const curvePower = 2 / exponent;
+      const steps = 72;
+      for (let i = 0; i <= steps; i++) {
+        const angle = -Math.PI / 2 + Math.PI * 2 * i / steps;
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const x = field.x + rx * Math.sign(cos) * Math.pow(Math.abs(cos), curvePower);
+        const y = field.y + ry * Math.sign(sin) * Math.pow(Math.abs(sin), curvePower);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
       ctx.closePath();
     }
 
     function drawBoardOrnaments(w, h) {
       ctx.save();
-      drawTopRushLogo(w, h);
       drawSideRoutePanels(w, h);
-      drawCenterGuardian(w, h);
-      drawLowerNumberUnit(w, h);
-      drawWindmill(sx(hitAreas.windmill.x), sy(hitAreas.windmill.y), hitAreas.windmill.r / 720 * w);
       ctx.restore();
     }
 
-    function drawTopRushLogo(w, h) {
-      ctx.save();
-      ctx.translate(w * .50, h * .105);
-      const panel = ctx.createLinearGradient(-w * .30, -h * .04, w * .30, h * .06);
-      panel.addColorStop(0, "rgba(255, 246, 224, .88)");
-      panel.addColorStop(.45, "rgba(255,255,255,.72)");
-      panel.addColorStop(1, "rgba(255, 210, 84, .74)");
-      ctx.fillStyle = panel;
-      ctx.strokeStyle = "rgba(255, 142, 17, .76)";
-      ctx.lineWidth = Math.max(5, w * .010);
-      ctx.beginPath();
-      ctx.moveTo(-w * .31, -h * .035);
-      ctx.bezierCurveTo(-w * .20, -h * .070, -w * .05, -h * .054, w * .05, -h * .078);
-      ctx.bezierCurveTo(w * .18, -h * .052, w * .27, -h * .060, w * .32, -h * .030);
-      ctx.lineTo(w * .29, h * .045);
-      ctx.bezierCurveTo(w * .10, h * .065, -w * .10, h * .052, -w * .29, h * .060);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
+    function drawRightRouteLogo(w, h) {
+      if (!rescueTitleReady) return;
+      const glyphs = [
+        { x: 14, y: 26, w: 820, h: 672 },
+        { x: 760, y: 35, w: 690, h: 644 },
+        { x: 1340, y: 31, w: 826, h: 667 }
+      ];
+      const centerX = sx(610);
+      const topY = sy(100);
+      const slotHeight = sy(114);
+      const maxWidth = sx(127);
+      const rushActive = isRushStActive();
+      const rainbowTime = performance.now();
 
-      ctx.strokeStyle = "rgba(0, 170, 83, .90)";
-      ctx.lineWidth = Math.max(5, w * .012);
-      ctx.stroke();
-      ctx.strokeStyle = "rgba(10, 12, 18, .92)";
-      ctx.lineWidth = Math.max(2, w * .004);
-      ctx.stroke();
-      ctx.shadowColor = "rgba(255, 151, 29, .85)";
-      ctx.shadowBlur = Math.max(8, w * .018);
-      ctx.fillStyle = "rgba(255,255,255,.96)";
-      ctx.strokeStyle = "rgba(8, 10, 14, .92)";
-      ctx.lineWidth = Math.max(4, w * .008);
-      ctx.font = `900 ${Math.max(28, w * .070)}px "Noto Sans JP", "Segoe UI", sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.strokeText("救急隊", 0, h * .004);
-      ctx.fillText("救急隊", 0, h * .004);
+      ctx.save();
+      ctx.globalAlpha = 1;
+      glyphs.forEach((glyph, index) => {
+        if (rushActive) {
+          const hue = (rainbowTime / 15 + index * 120) % 360;
+          const pulse = .5 + Math.sin(rainbowTime / 150 + index * 1.8) * .5;
+          ctx.filter = `hue-rotate(${hue}deg) saturate(1.75) brightness(${1.08 + pulse * .22})`;
+          ctx.shadowColor = `hsla(${hue}, 100%, 68%, .96)`;
+          ctx.shadowBlur = sx(7 + pulse * 6);
+        } else {
+          ctx.filter = "none";
+          ctx.shadowColor = "transparent";
+          ctx.shadowBlur = 0;
+        }
+        const glyphHeight = maxWidth * glyph.h / glyph.w;
+        const drawY = topY + slotHeight * index + (slotHeight - glyphHeight) / 2;
+        ctx.drawImage(
+          rescueTitleImage,
+          glyph.x, glyph.y, glyph.w, glyph.h,
+          centerX - maxWidth / 2,
+          drawY,
+          maxWidth,
+          glyphHeight
+        );
+      });
       ctx.restore();
     }
 
     function drawSideRoutePanels(w, h) {
+      if (!acrylicGuardReady) return;
       ctx.save();
       ctx.globalCompositeOperation = "screen";
-      const left = ctx.createLinearGradient(w * .06, h * .22, w * .24, h * .72);
-      left.addColorStop(0, "rgba(0, 255, 220, .48)");
-      left.addColorStop(.55, "rgba(0, 154, 255, .36)");
-      left.addColorStop(1, "rgba(252, 255, 90, .28)");
-      ctx.fillStyle = left;
-      ctx.beginPath();
-      ctx.moveTo(w * .10, h * .20);
-      ctx.bezierCurveTo(w * .22, h * .28, w * .19, h * .52, w * .25, h * .70);
-      ctx.lineTo(w * .14, h * .75);
-      ctx.bezierCurveTo(w * .06, h * .55, w * .04, h * .36, w * .10, h * .20);
-      ctx.closePath();
-      ctx.fill();
+      ctx.globalAlpha = .66;
+      const guardHeight = h * .64;
+      const guardWidth = guardHeight * acrylicGuardImage.naturalWidth / acrylicGuardImage.naturalHeight;
+      const guardX = w * .012;
+      const guardY = h * .17;
 
-      const right = ctx.createLinearGradient(w * .78, h * .24, w * .94, h * .72);
-      right.addColorStop(0, "rgba(255,255,255,.45)");
-      right.addColorStop(.42, "rgba(116, 255, 128, .26)");
-      right.addColorStop(1, "rgba(255, 45, 151, .36)");
-      ctx.fillStyle = right;
-      ctx.beginPath();
-      ctx.moveTo(w * .86, h * .22);
-      ctx.bezierCurveTo(w * .94, h * .38, w * .92, h * .58, w * .82, h * .76);
-      ctx.lineTo(w * .72, h * .71);
-      ctx.bezierCurveTo(w * .79, h * .55, w * .78, h * .38, w * .86, h * .22);
-      ctx.closePath();
-      ctx.fill();
+      ctx.shadowColor = "rgba(78, 220, 255, .58)";
+      ctx.shadowBlur = Math.max(8, w * .014);
+      ctx.drawImage(acrylicGuardImage, guardX, guardY, guardWidth, guardHeight);
+      ctx.restore();
+    }
 
-      ctx.strokeStyle = "rgba(255,255,255,.44)";
-      ctx.lineWidth = Math.max(2, w * .004);
-      ["left", "right"].forEach(side => {
-        const startX = side === "left" ? w * .13 : w * .86;
-        const endX = side === "left" ? w * .22 : w * .76;
+    function traceUpperSupportArc() {
+      const arc = upperLaunchGuide.supportArc;
+      ctx.beginPath();
+      ctx.moveTo(sx(arc.start.x), sy(arc.start.y));
+      ctx.quadraticCurveTo(sx(arc.control.x), sy(arc.control.y), sx(arc.end.x), sy(arc.end.y));
+    }
+
+    function drawUpperSupportArc(w, h) {
+      const arc = upperLaunchGuide.supportArc;
+      if (upperCornerSupportReady) {
+        const visual = upperLaunchGuide.supportVisual;
+        ctx.save();
+        ctx.globalAlpha = .98;
+        ctx.shadowColor = "rgba(0,0,0,.68)";
+        ctx.shadowBlur = Math.max(4, sx(6));
+        ctx.drawImage(
+          upperCornerSupportImage,
+          sx(visual.x), sy(visual.y), visual.w / 720 * w, visual.h / 900 * h
+        );
+        ctx.restore();
+        return;
+      }
+
+      ctx.save();
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.shadowColor = "rgba(0,0,0,.72)";
+      ctx.shadowBlur = Math.max(4, sx(5));
+      traceUpperSupportArc();
+      ctx.strokeStyle = "rgba(15,24,32,.92)";
+      ctx.lineWidth = Math.max(7, sx(arc.thickness + 5));
+      ctx.stroke();
+
+      const acrylic = ctx.createLinearGradient(sx(arc.start.x), sy(arc.start.y), sx(arc.end.x), sy(arc.end.y));
+      acrylic.addColorStop(0, "rgba(102,227,255,.76)");
+      acrylic.addColorStop(.46, "rgba(232,250,255,.92)");
+      acrylic.addColorStop(.54, "rgba(232,250,255,.92)");
+      acrylic.addColorStop(1, "rgba(102,227,255,.76)");
+      ctx.shadowColor = "rgba(72,224,255,.62)";
+      ctx.shadowBlur = Math.max(5, sx(8));
+      traceUpperSupportArc();
+      ctx.strokeStyle = acrylic;
+      ctx.lineWidth = Math.max(4, sx(arc.thickness + 1));
+      ctx.stroke();
+
+      ctx.shadowBlur = 0;
+      traceUpperSupportArc();
+      ctx.strokeStyle = "rgba(255,255,255,.84)";
+      ctx.lineWidth = Math.max(1, sx(1.2));
+      ctx.stroke();
+
+      [arc.start, arc.end].forEach(point => {
+        ctx.fillStyle = "#b8c2ca";
+        ctx.strokeStyle = "#303944";
+        ctx.lineWidth = Math.max(1, sx(1.4));
         ctx.beginPath();
-        ctx.moveTo(startX, h * .28);
-        ctx.bezierCurveTo(side === "left" ? w * .08 : w * .92, h * .43, side === "left" ? w * .20 : w * .80, h * .58, endX, h * .72);
+        ctx.arc(sx(point.x), sy(point.y), Math.max(4, sx(6)), 0, Math.PI * 2);
+        ctx.fill();
         ctx.stroke();
       });
+
+      const stopper = upperLaunchGuide.stopper;
+      ctx.beginPath();
+      ctx.moveTo(sx(stopper.bx), sy(stopper.by));
+      ctx.lineTo(sx(stopper.ax), sy(stopper.ay));
+      ctx.strokeStyle = "rgba(207,220,228,.94)";
+      ctx.lineWidth = Math.max(3, sx(5));
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawRightAcrylicChute(w, h) {
+      if (!rightAcrylicChuteReady) return;
+      const source = rightAcrylicChute.source;
+      const active = isRightShotActive();
+      const x = sx(rightAcrylicChute.x);
+      const y = sy(rightAcrylicChute.y);
+      const width = rightAcrylicChute.w / 720 * w;
+      const height = rightAcrylicChute.h / 900 * h;
+
+      ctx.save();
+      ctx.globalAlpha = active ? 1 : .82;
+      ctx.shadowColor = active ? "rgba(72, 224, 255, .88)" : "rgba(72, 224, 255, .42)";
+      ctx.shadowBlur = active ? Math.max(12, w * .020) : Math.max(6, w * .010);
+      ctx.drawImage(
+        rightAcrylicChuteImage,
+        source.x, source.y, source.w, source.h,
+        x, y, width, height
+      );
+      ctx.restore();
+    }
+
+    function drawRightAcrylicRushBranch(w, h) {
+      if (!rightAcrylicChuteReady) return;
+      const branchSource = rightAcrylicChute.branchSource;
+      const branchDest = rightAcrylicChute.branchDest;
+      const rushActive = isRushStartClawOpen();
+      ctx.save();
+      ctx.globalAlpha = rushActive ? 1 : .56;
+      ctx.shadowColor = rushActive ? "rgba(72, 224, 255, .98)" : "rgba(72, 224, 255, .38)";
+      ctx.shadowBlur = rushActive ? Math.max(15, w * .024) : Math.max(6, w * .010);
+      ctx.drawImage(
+        rightAcrylicChuteImage,
+        branchSource.x, branchSource.y, branchSource.w, branchSource.h,
+        sx(branchDest.x), sy(branchDest.y), branchDest.w / 720 * w, branchDest.h / 900 * h
+      );
+
+      const rushStart = rightAcrylicChute.rushStart;
+      const pulse = .72 + Math.sin(performance.now() / 120) * .18;
+      ctx.globalAlpha = rushActive ? pulse : .24;
+      ctx.strokeStyle = rushActive ? "#66e3ff" : "rgba(102,227,255,.48)";
+      ctx.lineWidth = Math.max(2, w * .004);
+      ctx.beginPath();
+      ctx.arc(sx(rushStart.x), sy(rushStart.y), rushStart.r / 720 * w, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawRushStartClaw(w, h) {
+      if (!rushStartClawReady) return;
+      const gate = rightAcrylicChute.rushStart;
+      const openTarget = isRushStartClawOpen() ? 1 : 0;
+      rushStartClawVisual += (openTarget - rushStartClawVisual) * .16;
+
+      const cx = sx(gate.x);
+      const cy = sy(gate.y);
+      const scale = w / 720;
+      const open = rushStartClawVisual;
+      const pulse = .78 + Math.sin(performance.now() / 110) * .16;
+      const closedAngle = -Math.PI / 2;
+      const openAngle = -Math.PI * 5 / 6;
+      const clawAngle = closedAngle + (openAngle - closedAngle) * open;
+      const source = { x: 275, y: 250, w: 1431, h: 311, pivotX: 152, pivotY: 155 };
+      const drawHeight = 30 * scale;
+      const imageScale = drawHeight / source.h;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(clawAngle);
+      ctx.shadowColor = isRushStartClawOpen()
+        ? `rgba(82, 216, 255, ${pulse})`
+        : "rgba(255, 91, 105, .76)";
+      ctx.shadowBlur = (isRushStartClawOpen() ? 9 : 6) * scale;
+      ctx.globalAlpha = isRushStartClawOpen() ? 1 : .96;
+      ctx.drawImage(
+        rushStartClawImage,
+        source.x, source.y, source.w, source.h,
+        -source.pivotX * imageScale,
+        -source.pivotY * imageScale,
+        source.w * imageScale,
+        source.h * imageScale
+      );
+      ctx.restore();
+    }
+
+    function drawWarpStage(w, h) {
+      const entryX = sx(warpDevice.entry.x);
+      const entryY = sy(warpDevice.entry.y);
+      const entryRadius = warpDevice.entry.r / 720 * w;
+      const stageLeft = sx(warpDevice.stage.left);
+      const stageRight = sx(warpDevice.stage.right);
+      const stageY = sy(warpDevice.stage.y);
+      const stageWidth = stageRight - stageLeft;
+
+      if (centerWarpAcrylicReady) {
+        const visual = warpDevice.visual;
+        ctx.save();
+        ctx.globalAlpha = .94;
+        ctx.drawImage(
+          centerWarpAcrylicImage,
+          sx(visual.x), sy(visual.y), sx(visual.w), sy(visual.h)
+        );
+        ctx.globalAlpha = 1;
+        const pulse = .72 + Math.sin(performance.now() / 230) * .18;
+        ctx.shadowColor = "rgba(86, 224, 255, .88)";
+        ctx.shadowBlur = Math.max(7, entryRadius * .55);
+        ctx.strokeStyle = `rgba(188, 246, 255, ${pulse})`;
+        ctx.lineWidth = Math.max(2, w * .004);
+        ctx.beginPath();
+        ctx.arc(entryX, entryY, entryRadius * .82, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = `rgba(255, 83, 111, ${pulse})`;
+        ctx.lineWidth = Math.max(2, entryRadius * .14);
+        ctx.lineCap = "round";
+        for (let i = -1; i <= 1; i++) {
+          const offset = i * entryRadius * .30;
+          ctx.beginPath();
+          ctx.moveTo(entryX - entryRadius * .30 + offset, entryY - entryRadius * .24);
+          ctx.lineTo(entryX + entryRadius * .10 + offset, entryY);
+          ctx.lineTo(entryX - entryRadius * .30 + offset, entryY + entryRadius * .24);
+          ctx.stroke();
+        }
+        ctx.restore();
+        return;
+      }
+
+      ctx.save();
+      ctx.shadowColor = "rgba(63, 213, 255, .62)";
+      ctx.shadowBlur = Math.max(7, w * .012);
+      ctx.fillStyle = "rgba(4, 22, 35, .94)";
+      ctx.strokeStyle = "rgba(91, 226, 255, .92)";
+      ctx.lineWidth = Math.max(2, w * .004);
+      ctx.beginPath();
+      ctx.moveTo(stageLeft, stageY - sy(7));
+      ctx.bezierCurveTo(
+        stageLeft + stageWidth * .22, stageY + sy(12),
+        stageLeft + stageWidth * .34, stageY - sy(2),
+        sx(360), stageY + sy(15)
+      );
+      ctx.bezierCurveTo(
+        stageLeft + stageWidth * .66, stageY - sy(2),
+        stageLeft + stageWidth * .78, stageY + sy(12),
+        stageRight, stageY - sy(7)
+      );
+      ctx.lineTo(stageRight - sx(12), stageY + sy(22));
+      ctx.bezierCurveTo(
+        stageLeft + stageWidth * .74, stageY + sy(31),
+        stageLeft + stageWidth * .26, stageY + sy(31),
+        stageLeft + sx(12), stageY + sy(22)
+      );
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      const rail = ctx.createLinearGradient(stageLeft, stageY, stageRight, stageY);
+      rail.addColorStop(0, "#4fdfff");
+      rail.addColorStop(.48, "#f4fbff");
+      rail.addColorStop(.52, "#f4fbff");
+      rail.addColorStop(1, "#ff5b77");
+      ctx.strokeStyle = rail;
+      ctx.lineWidth = Math.max(3, w * .006);
+      ctx.beginPath();
+      ctx.moveTo(stageLeft + sx(13), stageY + sy(7));
+      ctx.quadraticCurveTo(sx(360), stageY + sy(28), stageRight - sx(13), stageY + sy(7));
+      ctx.stroke();
+
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "rgba(0, 0, 0, .80)";
+      [stageLeft + sx(18), sx(360), stageRight - sx(18)].forEach((x, index) => {
+        ctx.beginPath();
+        ctx.ellipse(x, stageY + sy(index === 1 ? 24 : 18), sx(index === 1 ? 13 : 10), sy(7), 0, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.strokeStyle = "rgba(255,255,255,.72)";
+      ctx.lineWidth = Math.max(1, w * .002);
+      ctx.beginPath();
+      ctx.ellipse(sx(360), stageY + sy(24), sx(13), sy(7), 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.shadowColor = "rgba(76, 220, 255, .80)";
+      ctx.shadowBlur = Math.max(7, entryRadius * .55);
+      const entryGlow = ctx.createRadialGradient(entryX, entryY, entryRadius * .22, entryX, entryY, entryRadius);
+      entryGlow.addColorStop(0, "rgba(4, 9, 18, .98)");
+      entryGlow.addColorStop(.62, "rgba(8, 31, 49, .98)");
+      entryGlow.addColorStop(1, "rgba(48, 210, 255, .96)");
+      ctx.fillStyle = entryGlow;
+      ctx.strokeStyle = "rgba(235, 252, 255, .94)";
+      ctx.lineWidth = Math.max(2, w * .004);
+      ctx.beginPath();
+      ctx.arc(entryX, entryY, entryRadius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = "#ff5b77";
+      ctx.lineWidth = Math.max(2, entryRadius * .16);
+      ctx.lineCap = "round";
+      for (let i = -1; i <= 1; i++) {
+        const offset = i * entryRadius * .34;
+        ctx.beginPath();
+        ctx.moveTo(entryX - entryRadius * .34 + offset, entryY - entryRadius * .28);
+        ctx.lineTo(entryX + entryRadius * .12 + offset, entryY);
+        ctx.lineTo(entryX - entryRadius * .34 + offset, entryY + entryRadius * .28);
+        ctx.stroke();
+      }
       ctx.restore();
     }
 
@@ -3089,7 +4166,9 @@
 
     function drawPockets() {
       pockets.forEach(p => {
-        if (p.type === "attacker" && !state.rightDeviceOpen) return;
+        // The jackpot checker remains physical, but its old V circle/label is
+        // hidden because the generated ambulance gate is the visible device.
+        if (p.type === "attacker") return;
         const x = sx(p.x);
         const y = sy(p.y);
         const r = p.r / 720 * canvas.clientWidth;
@@ -3147,6 +4226,15 @@
           ctx.stroke();
           return;
         }
+        if (p.type === "start" && startRescueGateReady) {
+          const size = r * 4.8;
+          ctx.save();
+          ctx.shadowColor = state.startMeter >= 1 ? "rgba(255, 78, 62, .90)" : "rgba(53, 212, 255, .60)";
+          ctx.shadowBlur = Math.max(6, r * .55);
+          ctx.drawImage(startRescueGateImage, x - size / 2, y - size * .58, size, size);
+          ctx.restore();
+          return;
+        }
         const outer = p.type === "start" ? 2 : 5;
         ctx.fillStyle = "rgba(0,0,0,.62)";
         ctx.beginPath();
@@ -3172,62 +4260,59 @@
       const cx = sx(device.x);
       const cy = sy(device.y);
       const scale = canvas.clientWidth / 720;
-      const dw = device.w * scale;
-      const dh = device.h * scale;
-      const pulse = active ? .55 + Math.sin(performance.now() / 120) * .25 : .16;
       const flap = open ? 1 : 0;
 
       ctx.save();
       ctx.translate(cx, cy);
-      ctx.fillStyle = active ? `rgba(255, 211, 106, ${pulse})` : "rgba(255, 255, 255, .08)";
-      ctx.strokeStyle = active ? "#ffd36a" : "rgba(255,255,255,.22)";
-      ctx.lineWidth = 3;
-      roundRect(-dw / 2, -dh / 2, dw, dh, 10 * scale);
-      ctx.fill();
-      ctx.stroke();
 
-      ctx.save();
-      ctx.rotate(active ? performance.now() / 360 : 0);
-      ctx.strokeStyle = active ? "rgba(255,111,159,.95)" : "rgba(255,255,255,.20)";
-      ctx.lineWidth = 5 * scale;
-      for (let i = 0; i < 3; i++) {
-        ctx.rotate(Math.PI * 2 / 3);
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(0, -38 * scale);
-        ctx.stroke();
+      if (ambulanceLightBarReady) {
+        // Crop the generated square sprite to its opaque light-bar artwork,
+        // then use each half as a hinged gate leaf.
+        const sourceX = 17;
+        const sourceY = 485;
+        const sourceWidth = 1221;
+        const sourceHeight = 297;
+        const sourceHalf = sourceWidth / 2;
+        const gateWidth = 112 * scale;
+        const gateHalf = gateWidth / 2;
+        const gateHeight = gateWidth * sourceHeight / sourceWidth;
+        const gateY = 42 * scale;
+        const openAngle = flap * Math.PI * .31;
+        const brightness = active ? 1.12 + Math.sin(performance.now() / 90) * .18 : 1;
+
+        ctx.save();
+        ctx.globalAlpha = 1;
+        ctx.filter = `brightness(${brightness}) saturate(${active ? 1.18 : 1})`;
+        ctx.shadowColor = active ? "rgba(255, 58, 67, .88)" : "rgba(74, 205, 255, .38)";
+        ctx.shadowBlur = active ? 14 * scale : 6 * scale;
+
+        ctx.save();
+        ctx.translate(-gateHalf, gateY);
+        ctx.rotate(-openAngle);
+        ctx.drawImage(
+          ambulanceLightBarImage,
+          sourceX, sourceY, sourceHalf, sourceHeight,
+          0, -gateHeight / 2, gateHalf, gateHeight
+        );
+        ctx.restore();
+
+        ctx.save();
+        ctx.translate(gateHalf, gateY);
+        ctx.rotate(openAngle);
+        ctx.drawImage(
+          ambulanceLightBarImage,
+          sourceX + sourceHalf, sourceY, sourceHalf, sourceHeight,
+          -gateHalf, -gateHeight / 2, gateHalf, gateHeight
+        );
+        ctx.restore();
+        ctx.restore();
       }
-      ctx.restore();
-
-      ctx.fillStyle = "#141a22";
-      roundRect(-50 * scale, 24 * scale, 100 * scale, 38 * scale, 8 * scale);
-      ctx.fill();
-      ctx.strokeStyle = open ? "#ffffff" : "rgba(255,255,255,.28)";
-      ctx.stroke();
-      ctx.fillStyle = open ? "#fff4c2" : "rgba(255,255,255,.45)";
-      ctx.font = `900 ${Math.max(12, 18 * scale)}px "Segoe UI", sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(open ? "OPEN" : "LOCK", 0, 44 * scale);
-
-      ctx.fillStyle = open ? "rgba(255,211,106,.92)" : "rgba(255,255,255,.18)";
-      ctx.beginPath();
-      ctx.moveTo(-32 * scale, 10 * scale);
-      ctx.lineTo((-78 + flap * 30) * scale, (-22 + flap * 12) * scale);
-      ctx.lineTo(-32 * scale, -44 * scale);
-      ctx.closePath();
-      ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(32 * scale, 10 * scale);
-      ctx.lineTo((78 - flap * 30) * scale, (-22 + flap * 12) * scale);
-      ctx.lineTo(32 * scale, -44 * scale);
-      ctx.closePath();
-      ctx.fill();
       ctx.restore();
     }
 
-    function drawBalls() {
+    function drawBalls(predicate = null) {
       balls.forEach(ball => {
+        if (predicate && !predicate(ball)) return;
         if (ball.trail?.length > 1) {
           ctx.save();
           ball.trail.forEach((point, index) => {
@@ -3477,7 +4562,11 @@
     function loop(now) {
       const dt = Math.min(32, now - lastTime);
       lastTime = now;
-      update(dt);
+      physicsAccumulator = Math.min(48, physicsAccumulator + dt);
+      while (physicsAccumulator >= fixedPhysicsStep) {
+        update(fixedPhysicsStep);
+        physicsAccumulator -= fixedPhysicsStep;
+      }
       draw();
       requestAnimationFrame(loop);
     }
@@ -3491,20 +4580,26 @@
       if (els.sinceJackpotSpins) els.sinceJackpotSpins.textContent = state.sinceJackpotSpins;
       els.jackpots.textContent = state.jackpots;
       els.mode.textContent = state.mode;
-      els.rounds.textContent = state.rounds;
+      els.rounds.textContent = state.bonusActive
+        ? `${Math.min(state.rounds + 1, state.bonusTotalRounds)}/${state.bonusTotalRounds} (${state.bonusEntries}/${bonusEntriesPerRound})`
+        : "0";
       els.rate.textContent = state.fired ? `${Math.round(state.wins / state.fired * 100)}%` : "0%";
     }
 
     function syncHandleUi() {
-      const rightShot = isJackpotActive();
+      const rightShot = isRightShotActive();
       const min = Number(els.power.min);
       const max = Number(els.power.max);
       const power = autoShotPower(rightShot);
-      els.power.value = power;
+      els.power.value = state.launchPower;
+      if (els.handleAdjust) els.handleAdjust.value = state.launchPower;
       const t = (power - min) / (max - min);
       const degrees = -45 + t * 135;
       els.handleNeedle.style.transform = `translate(-50%, -92%) rotate(${degrees}deg)`;
-      els.handlePower.textContent = state.holdPause ? "HOLD" : rightShot ? "RIGHT" : "LEFT";
+      const mode = state.holdPause
+        ? "HOLD"
+        : power >= upperLaunchGuide.rightThreshold ? "RIGHT" : power < upperLaunchGuide.weakThreshold ? "RETURN" : "LEFT";
+      els.handlePower.textContent = `${mode} ${power}`;
     }
 
     function syncMachineView() {
@@ -3523,7 +4618,9 @@
     }
 
     function syncAutoUi() {
-      els.fire.textContent = state.holdPause ? "AUTO HOLD" : state.autoFire ? "AUTO STOP" : "AUTO START";
+      els.fire.textContent = isJackpotActive()
+        ? "BONUS AUTO"
+        : state.holdPause ? "AUTO HOLD" : state.autoFire ? "AUTO STOP" : "AUTO START";
       els.launchHandle.classList.toggle("active", state.autoFire);
       els.launchHandle.setAttribute("aria-pressed", state.autoFire ? "true" : "false");
       els.speedMode.textContent = state.speedMode ? "SPEED x5 ON" : "SPEED x5 OFF";
@@ -3553,21 +4650,24 @@
       while (els.log.children.length > 28) els.log.lastElementChild.remove();
     }
 
-    function pauseAutoForHold() {
+    function pauseAutoForFullHold() {
       if (!state.autoFire || state.holdPause || isJackpotActive()) return;
       state.holdPause = true;
       clearInterval(state.autoTimer);
       state.autoTimer = null;
-      message("保留満タン AUTO一時停止");
+      message(`保留${maxHolds}/${maxHolds} AUTO発射一時停止`);
+      addLog(`保留${maxHolds}/${maxHolds} AUTO発射一時停止`);
       syncAutoUi();
     }
 
-    function resumeAutoFromHold() {
+    function resumeAutoFromFullHold() {
       if (!state.autoFire || !state.holdPause || state.pendingStarts >= maxHolds || isJackpotActive()) return;
       state.holdPause = false;
       clearInterval(state.autoTimer);
       spawnBall();
-      state.autoTimer = setInterval(spawnBall, fireIntervalMs());
+      if (state.autoFire && !state.holdPause) state.autoTimer = setInterval(spawnBall, fireIntervalMs());
+      message(`保留${state.pendingStarts}/${maxHolds} AUTO発射再開`);
+      addLog(`保留${state.pendingStarts}/${maxHolds} AUTO発射再開`);
       syncAutoUi();
     }
 
@@ -3596,11 +4696,22 @@
     }
 
     function toggleAutoFire() {
+      if (isJackpotActive()) {
+        startNormalSpeedBonusAuto();
+        message("大当たり中は通常AUTO右打ち");
+        return;
+      }
       if (state.autoFire) stopAutoFire();
       else startAutoFire();
     }
 
     function toggleSpeedMode() {
+      if (isJackpotActive()) {
+        state.speedMode = false;
+        syncAutoUi();
+        message("大当たり中はSPEED解除・通常AUTO");
+        return;
+      }
       state.speedMode = !state.speedMode;
       if (state.autoFire) {
         clearInterval(state.autoTimer);
@@ -3609,6 +4720,33 @@
       } else {
         syncAutoUi();
       }
+    }
+
+    function syncForceJackpotUi() {
+      if (!els.forceJackpot) return;
+      els.forceJackpot.textContent = state.forceJackpot ? "大当たり強制 ON" : "大当たり強制 OFF";
+      els.forceJackpot.classList.toggle("active", state.forceJackpot);
+      els.forceJackpot.setAttribute("aria-pressed", state.forceJackpot ? "true" : "false");
+    }
+
+    function toggleForceJackpot() {
+      if (isJackpotActive()) {
+        message("大当たり中は強制フラグを変更できません");
+        return;
+      }
+      state.forceJackpot = !state.forceJackpot;
+      syncForceJackpotUi();
+      const text = state.forceJackpot ? "次回START抽選を大当たりにします" : "大当たり強制を解除しました";
+      message(text);
+      addLog(text);
+    }
+
+    function consumeForceJackpotFlag() {
+      if (!state.forceJackpot) return false;
+      state.forceJackpot = false;
+      syncForceJackpotUi();
+      addLog(`<span class="hit">大当たり強制フラグ発動</span>`);
+      return true;
     }
 
     function togglePinEditor() {
@@ -4027,30 +5165,29 @@
     }
 
     function boardCssMetrics() {
-      const mobile = window.matchMedia("(max-width: 560px)").matches;
-      const topInset = mobile ? 104 : 96;
-      const heightInset = mobile ? 116 : 108;
-      return { topInset, heightInset };
+      return state.boardZoom
+        ? { leftInset: 12, topInset: 96 }
+        : { leftInset: 62, topInset: 122 };
     }
 
     function syncLcdDomToHitArea() {
       if (!els.centerScreen || els.centerScreen.classList.contains("zoomed")) return;
       const lcd = hitAreas.lcd;
-      const { topInset, heightInset } = boardCssMetrics();
-      els.centerScreen.style.left = `calc(12px + (100% - 24px) * ${lcd.x} / 720)`;
-      els.centerScreen.style.top = `calc(${topInset}px + (100% - ${heightInset}px) * ${lcd.y} / 900)`;
-      els.centerScreen.style.width = `calc((100% - 24px) * ${lcd.w} / 720)`;
-      els.centerScreen.style.height = `calc((100% - ${heightInset}px) * ${lcd.h} / 900)`;
+      const { leftInset, topInset } = boardCssMetrics();
+      els.centerScreen.style.left = `${leftInset + lcd.x}px`;
+      els.centerScreen.style.top = `${topInset + lcd.y}px`;
+      els.centerScreen.style.width = `${lcd.w}px`;
+      els.centerScreen.style.height = `${lcd.h}px`;
     }
 
     function syncCabinetPartsToHitAreas() {
       if (!els.launchHandle) return;
       const guard = hitAreas.handle;
-      const { topInset, heightInset } = boardCssMetrics();
+      const { leftInset, topInset } = boardCssMetrics();
       const size = Math.max(32, guard.r * 2);
-      els.launchHandle.style.left = `calc(12px + (100% - 24px) * ${guard.x} / 720 - (100% - 24px) * ${size / 2} / 720)`;
-      els.launchHandle.style.top = `calc(${topInset}px + (100% - ${heightInset}px) * ${guard.y} / 900 - (100% - 24px) * ${size / 2} / 720)`;
-      els.launchHandle.style.width = `calc((100% - 24px) * ${size} / 720)`;
+      els.launchHandle.style.left = `${leftInset + guard.x - size / 2}px`;
+      els.launchHandle.style.top = `${topInset + guard.y - size / 2}px`;
+      els.launchHandle.style.width = `${size}px`;
       els.launchHandle.style.right = "auto";
       els.launchHandle.style.bottom = "auto";
     }
@@ -4376,6 +5513,7 @@
 
     els.fire.addEventListener("click", toggleAutoFire);
     els.speedMode.addEventListener("click", toggleSpeedMode);
+    els.forceJackpot.addEventListener("click", toggleForceJackpot);
     els.viewOverview?.addEventListener("click", () => setMachineView(false));
     els.viewBoard?.addEventListener("click", () => setMachineView(true));
     els.pinEdit?.addEventListener("click", togglePinEditor);
@@ -4418,15 +5556,20 @@
       }
     });
     document.getElementById("down").addEventListener("click", () => {
-      syncHandleUi();
+      setLaunchPower(state.launchPower - 2, true);
     });
     document.getElementById("up").addEventListener("click", () => {
-      syncHandleUi();
+      setLaunchPower(state.launchPower + 2, true);
     });
-    els.power.addEventListener("input", syncHandleUi);
+    els.power.addEventListener("input", () => setLaunchPower(els.power.value, true));
+    els.handleAdjust?.addEventListener("input", () => setLaunchPower(els.handleAdjust.value, true));
+    ["pointerdown", "click", "keydown"].forEach(type => {
+      els.handleAdjust?.addEventListener(type, event => event.stopPropagation());
+    });
     els.nailSetting.addEventListener("input", () => {
       updateNailSettingUi();
-      addLog(`釘設定${state.nailSetting}: 約${currentNailSetting().spinsPer250}回/250玉`);
+      const setting = currentNailSetting();
+      addLog(`設定${state.nailSetting}: 約${setting.displaySpinsPer250}回/250玉・目標機械割${setting.machineRate}%`);
     });
     els.launchHandle.addEventListener("click", toggleAutoFire);
     els.centerScreen.addEventListener("click", toggleLcdZoom);
@@ -4441,7 +5584,14 @@
         toggleAutoFire();
         return;
       }
-      if (event.key === "ArrowRight" || event.key === "ArrowUp" || event.key === "ArrowLeft" || event.key === "ArrowDown") event.preventDefault();
+      if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+        event.preventDefault();
+        setLaunchPower(state.launchPower + 2, true);
+      }
+      if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+        event.preventDefault();
+        setLaunchPower(state.launchPower - 2, true);
+      }
     });
     window.addEventListener("resize", () => {
       fitCanvas();
@@ -4452,17 +5602,21 @@
     ensureExtraHitOptions();
     setupPins();
     setupDefaultAcrylicParts();
+    setReelSymbols(["7", "3", "5"]);
     syncMachineView();
     rebuildStatusHud();
     updateNailSettingUi();
+    setLaunchPower(state.launchPower);
     syncAutoUi();
+    syncForceJackpotUi();
     syncPinEditorUi();
     syncHitEditorUi();
     syncLcdDomToHitArea();
     syncCabinetPartsToHitAreas();
     updateHud();
     addLog("スペック: 1/400、初当たり5R、RUSH中10R固定");
-    addLog("AUTOで連続発射。通常は左ルート、当たり中は右打ち。");
+    addLog("図柄別RUSH: 7=確定 / 1・3=50% / 2・5=25%");
+    addLog("左上発射口から短いガイドへ発射。強度44以上で左打ち、84以上で右打ち。");
     requestAnimationFrame(loop);
   </script>
 </body>
