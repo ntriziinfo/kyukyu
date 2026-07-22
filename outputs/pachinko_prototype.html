@@ -900,6 +900,7 @@
         </label>
         <button class="main-btn" id="fire">AUTO START</button>
         <button class="speed-btn" id="speedMode" aria-pressed="false">SPEED x5 OFF</button>
+        <button class="speed-btn" id="forceJackpot" aria-pressed="false">大当たり強制 OFF</button>
         <div class="pin-tools">
           <button class="speed-btn" id="pinEdit" aria-pressed="false">PIN EDIT OFF</button>
           <select id="pinKind" aria-label="pin kind">
@@ -998,6 +999,7 @@
       nailSettingValue: document.getElementById("nailSettingValue"),
       fire: document.getElementById("fire"),
       speedMode: document.getElementById("speedMode"),
+      forceJackpot: document.getElementById("forceJackpot"),
       viewOverview: document.getElementById("viewOverview"),
       viewBoard: document.getElementById("viewBoard"),
       pinEdit: document.getElementById("pinEdit"),
@@ -1048,6 +1050,7 @@
       lastShotAt: 0,
       holdPause: false,
       speedMode: false,
+      forceJackpot: false,
       boardZoom: false,
       rightDeviceOpen: false,
       nailSetting: 3,
@@ -1059,6 +1062,10 @@
       rushStreak: 0,
       stRemaining: 0,
       pendingRush: "none",
+      bonusKind: "",
+      bonusTotalRounds: 0,
+      bonusEntries: 0,
+      bonusRevealAtRound: 0,
       pinEditor: false,
       selectedPin: -1,
       selectedPins: new Set(),
@@ -1133,6 +1140,9 @@
     }
 
     const maxHolds = 4;
+    const bonusPayoutPerRound = 300;
+    const bonusEntriesPerRound = 10;
+    const bonusPayoutPerEntry = bonusPayoutPerRound / bonusEntriesPerRound;
     // Long-run targets derived from the current game spec: 1/400 initial hit,
     // 5R initial payout, 60%/75% ST100, 10R RUSH payout and 5 balls per START.
     // One normal renewal cycle averages 486.4847 STARTs and 6447.3833 paid balls.
@@ -1161,7 +1171,7 @@
       randomNailScatter: .055
     };
     const pockets = [
-      { x: 360, y: 770, r: 18, type: "start", label: "START", color: "#66e3ff" },
+      { x: 360, y: 670, r: 18, type: "start", label: "START", color: "#66e3ff" },
       { x: 632, y: 568, r: 38, type: "attacker", label: "V", color: "#ffd36a" },
       { x: 360, y: 900, r: 72, shape: "semicircle", type: "out", label: "", color: "#8895a4" }
     ];
@@ -1172,6 +1182,30 @@
       launch: { x: 54, y: 74, r: 18 },
       push: { x: 82, y: 824, r: 49 },
       handle: { x: 650, y: 838, r: 76 }
+    };
+    const warpDevice = {
+      entry: { x: 188, y: 404, r: 19 },
+      stage: { left: 236, right: 484, y: 492 }
+    };
+    const rightAcrylicChute = {
+      x: 560,
+      y: 92,
+      w: 144,
+      h: 466,
+      source: { x: 185, y: 245, w: 485, h: 1552 },
+      path: [
+        { x: 624, y: 98 },
+        { x: 652, y: 126 },
+        { x: 612, y: 166 },
+        { x: 652, y: 210 },
+        { x: 612, y: 255 },
+        { x: 652, y: 305 },
+        { x: 612, y: 350 },
+        { x: 652, y: 400 },
+        { x: 612, y: 450 },
+        { x: 632, y: 522 },
+        { x: 632, y: 568 }
+      ]
     };
     const acrylicParts = [];
     const layoutStorageKey = "pachinkoPrototypeDefaultLayoutV1";
@@ -1194,6 +1228,24 @@
     let acrylicGuardReady = false;
     acrylicGuardImage.addEventListener("load", () => {
       acrylicGuardReady = true;
+    });
+    const ambulanceLightBarImage = new Image();
+    ambulanceLightBarImage.src = "pachinko_ambulance_light_bar.png";
+    let ambulanceLightBarReady = false;
+    ambulanceLightBarImage.addEventListener("load", () => {
+      ambulanceLightBarReady = true;
+    });
+    const startRescueGateImage = new Image();
+    startRescueGateImage.src = "pachinko_start_rescue_gate.png";
+    let startRescueGateReady = false;
+    startRescueGateImage.addEventListener("load", () => {
+      startRescueGateReady = true;
+    });
+    const rightAcrylicChuteImage = new Image();
+    rightAcrylicChuteImage.src = "pachinko_right_acrylic_chute.png";
+    let rightAcrylicChuteReady = false;
+    rightAcrylicChuteImage.addEventListener("load", () => {
+      rightAcrylicChuteReady = true;
     });
     const ballImage = new Image();
     ballImage.src = "pachinko_ball.png";
@@ -1282,35 +1334,30 @@
       // deflections before balls reach the yori and michi channels.
       staggered(194, 526, 486, 5, 40, 38, "road", "spill", 2.7);
 
-      // Michi nails form a shallow two-bank channel toward the start pocket.
-      curve([{ x: 60, y: 600 }, { x: 120, y: 650 }, { x: 220, y: 690 }, { x: 342, y: 730 }], 12, "road", 2.9);
-      curve([{ x: 118, y: 638 }, { x: 194, y: 664 }, { x: 266, y: 706 }, { x: 336, y: 752 }], 11, "spill", 2.8);
-      line(82, 646, 50, 742, 7, "spill", 2.7);
-      line(154, 678, 118, 776, 7, "spill", 2.7);
-      line(218, 716, 184, 810, 7, "spill", 2.7);
+      // Michi nails turn toward the raised START while leaving the warp-stage
+      // center drop visibly clear.
+      curve([{ x: 60, y: 572 }, { x: 120, y: 596 }, { x: 220, y: 612 }, { x: 342, y: 624 }], 12, "road", 2.9);
+      curve([{ x: 118, y: 604 }, { x: 194, y: 618 }, { x: 266, y: 628 }, { x: 336, y: 636 }], 11, "spill", 2.8);
+      line(82, 620, 50, 716, 7, "spill", 2.7);
+      line(154, 646, 118, 744, 7, "spill", 2.7);
+      line(218, 674, 184, 768, 7, "spill", 2.7);
 
       // Heso approach, entrance nails, and the lower spill fan.
-      line(260, 700, 342, 738, 6, "heso", 2.95);
-      line(460, 700, 378, 738, 6, "heso", 2.95);
-      add(346, 758, "heso", 3.05);
-      add(374, 758, "heso", 3.05);
-      add(326, 778, "spill", 2.9);
-      add(394, 778, "spill", 2.9);
-      line(300, 802, 338, 838, 5, "spill", 2.8);
-      line(420, 802, 382, 838, 5, "spill", 2.8);
-      line(232, 790, 302, 856, 6, "spill", 2.75);
-      line(488, 790, 418, 856, 6, "spill", 2.75);
-      line(222, 842, 320, 870, 7, "spill", 2.65);
-      line(498, 842, 400, 870, 7, "spill", 2.65);
+      line(270, 596, 342, 624, 6, "heso", 2.95);
+      line(450, 596, 378, 624, 6, "heso", 2.95);
+      add(342, 642, "heso", 3.05);
+      add(378, 642, "heso", 3.05);
+      add(322, 682, "spill", 2.9);
+      add(398, 682, "spill", 2.9);
+      line(296, 712, 338, 748, 5, "spill", 2.8);
+      line(424, 712, 382, 748, 5, "spill", 2.8);
+      line(232, 738, 302, 804, 6, "spill", 2.75);
+      line(488, 738, 418, 804, 6, "spill", 2.75);
+      line(222, 812, 320, 840, 7, "spill", 2.65);
+      line(498, 812, 400, 840, 7, "spill", 2.65);
 
-      // Dedicated right-shot rail, gate approach, and attacker fan.
-      curve([{ x: 624, y: 86 }, { x: 668, y: 174 }, { x: 682, y: 342 }, { x: 658, y: 500 }], 24, "hot", 2.85);
-      curve([{ x: 594, y: 118 }, { x: 630, y: 232 }, { x: 640, y: 394 }, { x: 618, y: 504 }], 16, "hot", 2.75);
-      line(620, 514, 680, 582, 7, "hot", 2.9);
-      line(584, 526, 674, 590, 8, "attacker", 3.0);
-      line(650, 620, 516, 706, 11, "attacker", 2.95);
-      line(456, 744, 516, 706, 6, "attacker", 2.85);
-      line(548, 706, 642, 754, 8, "attacker", 2.85);
+      // The jackpot route is a molded acrylic chute. It intentionally uses no
+      // nails from the upper entrance through the V-shaped attacker funnel.
 
       // Sparse lower-field scatter nails; routes above remain readable.
       [
@@ -1320,6 +1367,18 @@
         [92, 724], [132, 744], [174, 760], [214, 780],
         [506, 748], [548, 764], [590, 786], [632, 808]
       ].forEach(([x, y]) => add(x, y, "normal", 2.7));
+
+      // The scripted warp ball must not appear to pass through nails. Remove
+      // nails overlapping the tray, its straight center chute, and the visible
+      // START notch itself.
+      for (let i = pins.length - 1; i >= 0; i--) {
+        const pin = pins[i];
+        const overlapsStage = pin.x >= 220 && pin.x <= 500 && pin.y >= 470 && pin.y <= 532;
+        const blocksCenterChute = Math.abs(pin.x - 360) < 32 && pin.y > 532 && pin.y <= 632;
+        const overlapsStartNotch = Math.abs(pin.x - 360) <= 30 && pin.y > 632 && pin.y <= 654;
+        const overlapsRightAcrylic = pin.x >= 548 && pin.y >= 76 && pin.y <= 590;
+        if (overlapsStage || blocksCenterChute || overlapsStartNotch || overlapsRightAcrylic) pins.splice(i, 1);
+      }
     }
 
     function setupDefaultAcrylicParts() {
@@ -1351,7 +1410,7 @@
     function removeHesoAcrylicHelpers() {
       const blocked = new Set([
         "ステージ受け", "ヘソ寄せ", "ステージ左返し", "ステージ右返し", "ヘソ左肩", "ヘソ右肩",
-        "液晶左肩", "液晶右肩"
+        "液晶左肩", "液晶右肩", "左外周レール", "右打ちレール", "右アタッカー導入"
       ]);
       for (let i = acrylicParts.length - 1; i >= 0; i--) {
         if (blocked.has(acrylicParts[i].label || "")) acrylicParts.splice(i, 1);
@@ -1412,9 +1471,15 @@
     }
 
     function spawnBall() {
-      if (!isJackpotActive() && state.pendingStarts >= maxHolds) {
-        pauseAutoForHold();
+      const rightShot = isJackpotActive();
+      if (!rightShot && state.pendingStarts >= maxHolds) {
+        pauseAutoForFullHold();
         return;
+      }
+      if (rightShot) {
+        const remainingEntries = Math.max(0, bonusEntriesPerRound - state.bonusEntries);
+        const ballsInRightChute = balls.filter(ball => ball.live && ball.rightAcrylicStage).length;
+        if (ballsInRightChute >= remainingEntries) return;
       }
       if (state.balls <= 0) {
         message("持ち玉がありません。リセットで再試行。");
@@ -1426,16 +1491,15 @@
       state.balls--;
       state.fired++;
       state.balance--;
-      const rightShot = isJackpotActive();
       if (!rightShot) state.startMeter += currentNailSetting().startPerBall;
       const power = autoShotPower(rightShot);
       balls.push({
         // The visible launcher is in the cabinet; simulation begins at the
         // upper rail exit, just inside the playfield.
-        x: sx(rightShot ? 110 : 118),
-        y: sy(rightShot ? 118 : 96),
-        vx: rightShot ? power * .0068 : power * .0008 + (Math.random() - .5) * .018,
-        vy: rightShot ? -power * .0025 : power * .0002 + Math.random() * .012,
+        x: sx(rightShot ? rightAcrylicChute.path[0].x : 118),
+        y: sy(rightShot ? rightAcrylicChute.path[0].y : 96),
+        vx: rightShot ? 0 : power * .0008 + (Math.random() - .5) * .018,
+        vy: rightShot ? 0 : power * .0002 + Math.random() * .012,
         r: Math.max(5, canvas.clientWidth * .0105),
         massG: physics.ballMassG,
         live: true,
@@ -1444,7 +1508,15 @@
         angle: Math.random() * Math.PI * 2,
         trail: [],
         rightShot,
-        startGateChecked: false
+        startGateChecked: false,
+        startMouthEntered: false,
+        warpUsed: false,
+        warpStage: null,
+        rightAcrylicStage: rightShot ? {
+          elapsed: 0,
+          duration: 3000 + Math.random() * 180,
+          offset: (Math.random() - .5) * 4
+        } : null
       });
       updateHud();
     }
@@ -1460,11 +1532,13 @@
     function update(dt) {
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
-      state.rightDeviceOpen = isJackpotActive() && Math.sin(performance.now() / 180) > -.92;
+      // Keep the ambulance gate fully open throughout the bonus. The visual
+      // flap and the physical checker now agree, avoiding timing-based losses.
+      state.rightDeviceOpen = isJackpotActive();
       const settingInfo = currentNailSetting();
       const hesoOpening = settingInfo.hesoOpening;
       const scaledPins = pins.map(p => {
-        const adjustableHeso = p.kind === "heso" && p.y >= 730;
+        const adjustableHeso = p.kind === "heso" && p.y >= 620;
         const direction = p.x < 360 ? -1 : p.x > 360 ? 1 : 0;
         return {
           x: sx(p.x + (adjustableHeso ? direction * hesoOpening : 0)),
@@ -1484,6 +1558,8 @@
 
       balls.forEach(ball => {
         ball.age = (ball.age || 0) + dt;
+        if (advanceRightAcrylicChute(ball, dt)) return;
+        if (advanceWarpStage(ball, dt)) return;
         ball.prevX = ball.x;
         ball.prevY = ball.y;
         ball.trail.push({ x: ball.x, y: ball.y });
@@ -1552,16 +1628,21 @@
           }
         });
 
+        if (enterWarpIfHit(ball)) return;
+
         for (const pocket of scaledPockets) {
           if (pocket.type === "attacker" && !state.rightDeviceOpen) continue;
-          const hit = pocketHit(ball, pocket);
-          if (hit && ball.live) {
-            if (pocket.type === "start" && ball.rightShot) continue;
-            if (pocket.type === "start" && hit === "out") {
+          if (pocket.type === "start") {
+            const captured = collideWithStartGate(ball, pocket);
+            if (captured && ball.live) {
               ball.live = false;
-              handlePocket({ ...pocket, type: "out", color: "#8895a4" }, ball.x, ball.y);
+              handlePocket(pocket, ball.x, ball.y);
               break;
             }
+            continue;
+          }
+          const hit = pocketHit(ball, pocket);
+          if (hit && ball.live) {
             ball.live = false;
             handlePocket(pocket, ball.x, ball.y);
             break;
@@ -1631,22 +1712,210 @@
         const dist = Math.hypot(dx, dy);
         return ball.vy > 0 && ball.y + ball.r >= pocket.y - pocket.r && dist < pocket.r + ball.r * .65;
       }
-      if (pocket.type === "start") {
-        const dist = Math.hypot(ball.x - pocket.x, ball.y - pocket.y);
-        const prevDist = Math.hypot((ball.prevX ?? ball.x) - pocket.x, (ball.prevY ?? ball.y) - pocket.y);
-        const meterCatch = state.startMeter >= 1 ? sx(12) : 0;
-        const gate = pocket.r + ball.r * .38 + meterCatch;
-        const crossed = prevDist > gate && dist <= gate;
-        const physicalEntry = ball.vy > 0 && (crossed || dist < pocket.r + meterCatch);
-        return physicalEntry ? consumeStartMeter(ball) : false;
+      const captureRadius = pocket.type === "attacker" ? pocket.r + ball.r * .8 : pocket.r;
+      return Math.hypot(ball.x - pocket.x, ball.y - pocket.y) < captureRadius;
+    }
+
+    function collideWithStartGate(ball, pocket) {
+      const outerRadius = pocket.r + sx(12);
+      const dx = ball.x - pocket.x;
+      const dy = ball.y - pocket.y;
+      const distance = Math.hypot(dx, dy);
+      const previousY = ball.prevY ?? ball.y;
+      // Commit the entry just above the first possible rim contact so a ball
+      // that has visibly dropped into the notch can never be reflected back.
+      const mouthY = pocket.y - outerRadius * 1.36;
+      // Keep the physical opening compact, but let the setting meter feed a
+      // nearby downward-moving ball through the visible mouth. This preserves
+      // the configured long-run spin rate without allowing side entries.
+      const meterReady = state.startMeter >= 1;
+      const meterAssist = meterReady ? sx(24) : 0;
+      const mouthHalfWidth = outerRadius * .72 + meterAssist;
+      const descending = ball.vy > .02;
+      const crossedMouth = previousY <= mouthY && ball.y >= mouthY;
+      const insideMouthBand =
+        ball.y >= mouthY - ball.r &&
+        ball.y <= pocket.y - outerRadius * .58;
+
+      if (
+        !ball.startMouthEntered &&
+        !ball.rightShot &&
+        meterReady &&
+        descending &&
+        Math.abs(dx) <= mouthHalfWidth &&
+        (crossedMouth || (insideMouthBand && previousY < ball.y))
+      ) {
+        ball.startMouthEntered = Boolean(consumeStartMeter(ball));
       }
-      return Math.hypot(ball.x - pocket.x, ball.y - pocket.y) < pocket.r;
+
+      if (
+        ball.startMouthEntered &&
+        !ball.rightShot &&
+        descending &&
+        ball.y >= pocket.y - outerRadius * .72 &&
+        Math.abs(dx) <= outerRadius * .88 + meterAssist * .8
+      ) {
+        return true;
+      }
+
+      if (ball.startMouthEntered) {
+        ball.x += (pocket.x - ball.x) * .18;
+        ball.vx *= .78;
+      }
+
+      const angle = Math.atan2(dy, dx);
+      const topDelta = Math.abs(Math.atan2(Math.sin(angle + Math.PI / 2), Math.cos(angle + Math.PI / 2)));
+      const withinTopOpening = dy < 0 && topDelta < 1.15 && ball.startMouthEntered;
+      const contactDistance = outerRadius + ball.r;
+      if (distance >= contactDistance || withinTopOpening) return false;
+
+      const nx = distance > .01 ? dx / distance : 0;
+      const ny = distance > .01 ? dy / distance : -1;
+      const overlap = contactDistance - Math.max(distance, .01);
+      ball.x += nx * overlap;
+      ball.y += ny * overlap;
+      const impact = ball.vx * nx + ball.vy * ny;
+      if (impact < 0) {
+        const restitution = .72;
+        ball.vx -= (1 + restitution) * impact * nx;
+        ball.vy -= (1 + restitution) * impact * ny;
+      }
+      ball.vx += nx * .025;
+      ball.vy += ny * .025;
+      ball.startMouthEntered = false;
+      ball.glow = 1;
+      return false;
+    }
+
+    function advanceRightAcrylicChute(ball, dt) {
+      const route = ball.rightAcrylicStage;
+      if (!route || !ball.live) return false;
+
+      ball.prevX = ball.x;
+      ball.prevY = ball.y;
+      ball.trail.push({ x: ball.x, y: ball.y });
+      if (ball.trail.length > 7) ball.trail.shift();
+      ball.angle += .085 * dt;
+      ball.glow = Math.max(.62, ball.glow * .997);
+      route.elapsed += dt;
+
+      const progress = Math.min(1, route.elapsed / route.duration);
+      const path = rightAcrylicChute.path;
+      const scaled = progress * (path.length - 1);
+      const index = Math.min(path.length - 2, Math.floor(scaled));
+      const local = Math.min(1, scaled - index);
+      const eased = local * local * (3 - 2 * local);
+      const start = path[index];
+      const end = path[index + 1];
+      const offsetFade = Math.sin(progress * Math.PI);
+      const nextX = start.x + (end.x - start.x) * eased + route.offset * offsetFade;
+      const nextY = start.y + (end.y - start.y) * eased;
+      ball.x = sx(nextX);
+      ball.y = sy(nextY);
+      ball.vx = (ball.x - ball.prevX) / Math.max(1, dt);
+      ball.vy = (ball.y - ball.prevY) / Math.max(1, dt);
+
+      if (progress < 1) return true;
+
+      ball.rightAcrylicStage = null;
+      ball.live = false;
+      if (state.bonusActive && state.rightDeviceOpen) {
+        handlePocket(pockets[1], ball.x, ball.y);
+      } else {
+        burst(ball.x, ball.y, "#79889a", 8);
+      }
+      return true;
+    }
+
+    function enterWarpIfHit(ball) {
+      if (!ball.live || ball.rightShot || ball.warpUsed || ball.warpStage) return false;
+      const entryX = sx(warpDevice.entry.x);
+      const entryY = sy(warpDevice.entry.y);
+      const entryRadius = warpDevice.entry.r / 720 * canvas.clientWidth;
+      const distance = Math.hypot(ball.x - entryX, ball.y - entryY);
+      if (ball.vy < -.08 || distance >= entryRadius + ball.r * .72) return false;
+
+      ball.warpUsed = true;
+      ball.warpStage = {
+        phase: "sweep",
+        elapsed: 0,
+        startX: sx(warpDevice.stage.left + 18),
+        startY: sy(warpDevice.stage.y)
+      };
+      ball.x = ball.warpStage.startX;
+      ball.y = ball.warpStage.startY;
+      ball.vx = 0;
+      ball.vy = 0;
+      ball.trail.length = 0;
+      ball.glow = 1;
+      burst(entryX, entryY, "#66e3ff", 14);
+      return true;
+    }
+
+    function advanceWarpStage(ball, dt) {
+      const route = ball.warpStage;
+      if (!route || !ball.live) return false;
+
+      ball.prevX = ball.x;
+      ball.prevY = ball.y;
+      ball.trail.push({ x: ball.x, y: ball.y });
+      if (ball.trail.length > 6) ball.trail.shift();
+      ball.angle += .08 * dt;
+      ball.glow = Math.max(.55, ball.glow * .996);
+      route.elapsed += dt;
+
+      if (route.phase === "sweep") {
+        const duration = 1900;
+        const progress = Math.min(1, route.elapsed / duration);
+        const cycles = 2.15;
+        const triangle = 2 / Math.PI * Math.asin(Math.sin(progress * Math.PI * 2 * cycles - Math.PI / 2));
+        ball.x = sx(360 + triangle * 106);
+        ball.y = sy(warpDevice.stage.y + 3 + (1 - Math.abs(triangle)) * 10);
+        ball.vx = (ball.x - ball.prevX) / Math.max(1, dt);
+        ball.vy = (ball.y - ball.prevY) / Math.max(1, dt);
+
+        if (progress >= 1) {
+          const centerReserved = Boolean(consumeStartMeter(ball));
+          route.phase = centerReserved ? "center" : (Math.random() < .5 ? "left" : "right");
+          route.elapsed = 0;
+          route.startX = ball.x;
+          route.startY = ball.y;
+          burst(ball.x, ball.y, centerReserved ? "#ff5b69" : "#66e3ff", 10);
+          addLog(centerReserved ? "WARP中央ルート → START" : `WARP${route.phase === "left" ? "左" : "右"}落ち`);
+        }
+        return true;
+      }
+
+      const centerRoute = route.phase === "center";
+      const duration = centerRoute ? 520 : 420;
+      const rawProgress = Math.min(1, route.elapsed / duration);
+      const progress = rawProgress * rawProgress * (3 - 2 * rawProgress);
+      const side = route.phase === "left" ? -1 : 1;
+      const targetX = centerRoute ? sx(360) : sx(side < 0 ? 220 : 500);
+      const targetY = centerRoute ? sy(pockets[0].y - 18) : sy(536);
+      ball.x = route.startX + (targetX - route.startX) * progress;
+      ball.y = route.startY + (targetY - route.startY) * progress;
+      ball.vx = (ball.x - ball.prevX) / Math.max(1, dt);
+      ball.vy = (ball.y - ball.prevY) / Math.max(1, dt);
+
+      if (rawProgress < 1) return true;
+      if (centerRoute) {
+        ball.live = false;
+        handlePocket(pockets[0], ball.x, ball.y);
+        return true;
+      }
+
+      ball.warpStage = null;
+      ball.vx = side * (.30 + Math.random() * .08);
+      ball.vy = .34 + Math.random() * .08;
+      ball.glow = 1;
+      return true;
     }
 
     function consumeStartMeter(ball) {
       if (ball.startGateChecked || ball.rightShot) return false;
-      ball.startGateChecked = true;
       if (state.startMeter < 1) return false;
+      ball.startGateChecked = true;
       state.startMeter -= 1;
       return "start";
     }
@@ -1654,10 +1923,10 @@
     function collideBalls(dt) {
       for (let i = 0; i < balls.length; i++) {
         const a = balls[i];
-        if (!a.live) continue;
+        if (!a.live || a.warpStage || a.rightAcrylicStage) continue;
         for (let j = i + 1; j < balls.length; j++) {
           const b = balls[j];
-          if (!b.live) continue;
+          if (!b.live || b.warpStage || b.rightAcrylicStage) continue;
           const dx = b.x - a.x;
           const dy = b.y - a.y;
           let dist = Math.hypot(dx, dy);
@@ -1919,6 +2188,10 @@
         burst(x, y, "#79889a", 8);
         return;
       }
+      if (pocket.type === "attacker" && state.bonusActive) {
+        handleBonusAttackerEntry(pocket, x, y);
+        return;
+      }
       state.wins++;
       const prize = pocket.type === "start" ? 5 : 15;
       state.balls += prize;
@@ -1932,16 +2205,46 @@
       updateHud();
     }
 
+    function handleBonusAttackerEntry(pocket, x, y) {
+      if (!state.bonusActive || state.bonusTotalRounds <= 0) return;
+      state.wins++;
+      state.bonusEntries++;
+      state.balls += bonusPayoutPerEntry;
+      state.balance += bonusPayoutPerEntry;
+      state.payout += bonusPayoutPerEntry;
+      burst(x, y, state.bonusEntries % 2 ? "#ff5b77" : "#66e3ff", 18);
+      addLog(`<span class="hit">右アタッカー ${state.bonusEntries}/${bonusEntriesPerRound} +${bonusPayoutPerEntry}</span>`);
+
+      if (state.bonusEntries < bonusEntriesPerRound) {
+        message(`${state.mode} ${state.rounds + 1}/${state.bonusTotalRounds}R ${state.bonusEntries}/${bonusEntriesPerRound}`);
+        updateHud();
+        return;
+      }
+
+      state.rounds++;
+      state.bonusEntries = 0;
+      if (state.bonusKind === "initial" && state.rounds === state.bonusRevealAtRound) revealInitialRush();
+      message(`${state.mode} ${state.rounds}/${state.bonusTotalRounds}R +${bonusPayoutPerRound}`);
+      addLog(`<span class="hit">${state.rounds}R完了 +${bonusPayoutPerRound}</span>`);
+      burst(x, y, state.rounds % 2 ? "#ff5b77" : "#66e3ff", 28);
+
+      if (state.rounds >= state.bonusTotalRounds) {
+        const finishedKind = state.bonusKind;
+        finishBonus(finishedKind);
+      }
+      updateHud();
+    }
+
     function queueStartSpin() {
       if (state.pendingStarts >= maxHolds) {
-        pauseAutoForHold();
+        pauseAutoForFullHold();
         updateHud();
         return false;
       }
       state.pendingStarts++;
-      burst(sx(360), sy(790), "#66e3ff", 14);
-      addLog("START通過 保留+1");
-      if (state.pendingStarts >= maxHolds) pauseAutoForHold();
+      burst(sx(pockets[0].x), sy(pockets[0].y + 20), "#66e3ff", 14);
+      addLog(`START通過 保留+1 (${state.pendingStarts}/${maxHolds})`);
+      if (state.pendingStarts >= maxHolds) pauseAutoForFullHold();
       processStartQueue();
       updateHud();
       return true;
@@ -1950,7 +2253,7 @@
     function processStartQueue() {
       if (spinLock || state.bonusActive || state.pendingStarts <= 0) return;
       state.pendingStarts--;
-      resumeAutoFromHold();
+      resumeAutoFromFullHold();
       startSpin();
     }
 
@@ -1967,8 +2270,10 @@
       els.reels.forEach(r => r.classList.add("spin"));
 
       let ticks = 0;
-      const spinTicks = state.speedMode ? 5 : 17;
-      const spinInterval = state.speedMode ? 28 : 90;
+      // SPEED x5 accelerates ball launching, not the display spin itself.
+      // A real-machine-like 2.7 second spin lets START entries accumulate as holds.
+      const spinTicks = 30;
+      const spinInterval = 90;
       const interval = setInterval(() => {
         ticks++;
         els.reels.forEach(r => r.textContent = symbols[Math.floor(Math.random() * symbols.length)]);
@@ -1982,7 +2287,8 @@
 
     function settleSpin() {
       const hitChance = 1 / 400;
-      const hit = Math.random() < hitChance;
+      const forced = consumeForceJackpotFlag();
+      const hit = forced || Math.random() < hitChance;
       if (hit) {
         const sym = Math.random() < .55 ? "7" : symbols[Math.floor(Math.random() * symbols.length)];
         els.reels.forEach(r => {
@@ -2023,7 +2329,8 @@
       const rushActive = state.rushMode !== "none" && state.stRemaining > 0;
       if (rushActive) state.stRemaining--;
       const hitChance = rushActive ? rushSpinChance() : 1 / 400;
-      const hit = Math.random() < hitChance;
+      const forced = consumeForceJackpotFlag();
+      const hit = forced || Math.random() < hitChance;
       if (hit) {
         const sym = Math.random() < .55 ? "7" : symbols[Math.floor(Math.random() * symbols.length)];
         els.reels.forEach(r => {
@@ -2102,37 +2409,34 @@
 
     function startBonus({ rounds, kind, title, revealAtRound = 0 }) {
       clearInterval(state.bonusTimer);
-      state.rounds = rounds;
+      state.bonusTimer = null;
+      state.rounds = 0;
       state.bonusActive = true;
-      state.feverUntil = performance.now() + rounds * 900;
+      state.bonusKind = kind;
+      state.bonusTotalRounds = rounds;
+      state.bonusEntries = 0;
+      state.bonusRevealAtRound = revealAtRound;
+      state.feverUntil = 0;
       state.mode = kind === "rush" ? (state.rushMode === "upper" ? "上位RUSH BONUS" : "RUSH BONUS") : "初当たりBONUS";
       state.rightDeviceOpen = true;
       machine.classList.add("fever");
-      syncHandleUi();
+      startNormalSpeedBonusAuto();
       message(`${title} 右打ち`);
       addLog(`<span class="hit">${title} 開始</span>`);
-      payRound(rounds, kind, revealAtRound);
+      addLog(`1R ${bonusEntriesPerRound}入賞で${bonusPayoutPerRound}玉`);
+      updateHud();
     }
 
-    function payRound(rounds, kind, revealAtRound) {
-      const prize = 300;
-      let paid = 0;
-      state.bonusTimer = setInterval(() => {
-        if (paid >= rounds) {
-          clearInterval(state.bonusTimer);
-          state.bonusTimer = null;
-          finishBonus(kind);
-          return;
-        }
-        paid++;
-        state.balls += prize;
-        state.balance += prize;
-        state.payout += prize;
-        if (kind === "initial" && paid === revealAtRound) revealInitialRush();
-        message(`${state.mode} ${paid}/${rounds}R +${prize}`);
-        burst(sx(360), sy(646), paid % 2 ? "#ffd36a" : "#ff6f9f", 26);
-        updateHud();
-      }, 650);
+    function startNormalSpeedBonusAuto() {
+      state.speedMode = false;
+      state.autoFire = true;
+      state.holdPause = false;
+      state.lastShotAt = 0;
+      clearInterval(state.autoTimer);
+      state.autoTimer = null;
+      spawnBall();
+      state.autoTimer = setInterval(spawnBall, fireIntervalMs());
+      syncAutoUi();
     }
 
     function revealInitialRush() {
@@ -2158,12 +2462,20 @@
       updateHud();
     }
 
+    function clearBonusProgress() {
+      state.bonusKind = "";
+      state.bonusTotalRounds = 0;
+      state.bonusEntries = 0;
+      state.bonusRevealAtRound = 0;
+    }
+
     function finishBonus(kind) {
       state.bonusActive = false;
       state.rightDeviceOpen = false;
       machine.classList.remove("fever");
       state.rounds = 0;
-      syncHandleUi();
+      clearBonusProgress();
+      syncAutoUi();
 
       if (kind === "initial" && state.rushMode === "none") {
         resetToNormal("初当たり終了 通常へ");
@@ -2211,7 +2523,8 @@
       state.rightDeviceOpen = false;
       machine.classList.remove("fever");
       state.rounds = 0;
-      syncHandleUi();
+      clearBonusProgress();
+      syncAutoUi();
 
       if (kind === "initial" && state.rushMode === "none") {
         resetToNormal("初当たり終了 通常へ");
@@ -2246,9 +2559,11 @@
       state.rightDeviceOpen = false;
       state.feverUntil = 0;
       state.rounds = 0;
+      clearBonusProgress();
       machine.classList.remove("fever");
       message(text);
       addLog(text);
+      syncAutoUi();
       updateHud();
       processStartQueue();
     }
@@ -2274,7 +2589,7 @@
 
       drawBoardOrnaments(w, h);
       drawAcrylicParts(w, h);
-      drawNailHighlights(w, h);
+      drawRightAcrylicChute(w, h);
       drawRightDevice(w, h);
       drawPockets();
       drawPins();
@@ -2501,8 +2816,7 @@
       ctx.save();
       drawTopRushLogo(w, h);
       drawSideRoutePanels(w, h);
-      drawCenterGuardian(w, h);
-      drawLowerNumberUnit(w, h);
+      drawWarpStage(w, h);
       drawWindmill(sx(hitAreas.windmill.x), sy(hitAreas.windmill.y), hitAreas.windmill.r / 720 * w);
       ctx.restore();
     }
@@ -2562,12 +2876,118 @@
       ctx.shadowColor = "rgba(78, 220, 255, .58)";
       ctx.shadowBlur = Math.max(8, w * .014);
       ctx.drawImage(acrylicGuardImage, guardX, guardY, guardWidth, guardHeight);
+      ctx.restore();
+    }
 
-      ctx.translate(w, 0);
-      ctx.scale(-1, 1);
-      ctx.filter = "hue-rotate(165deg) saturate(1.12)";
-      ctx.shadowColor = "rgba(255, 132, 57, .52)";
-      ctx.drawImage(acrylicGuardImage, guardX, guardY, guardWidth, guardHeight);
+    function drawRightAcrylicChute(w, h) {
+      if (!rightAcrylicChuteReady) return;
+      const source = rightAcrylicChute.source;
+      const active = isJackpotActive();
+      const x = sx(rightAcrylicChute.x);
+      const y = sy(rightAcrylicChute.y);
+      const width = rightAcrylicChute.w / 720 * w;
+      const height = rightAcrylicChute.h / 900 * h;
+
+      ctx.save();
+      ctx.globalAlpha = active ? 1 : .82;
+      ctx.shadowColor = active ? "rgba(72, 224, 255, .88)" : "rgba(72, 224, 255, .42)";
+      ctx.shadowBlur = active ? Math.max(12, w * .020) : Math.max(6, w * .010);
+      ctx.drawImage(
+        rightAcrylicChuteImage,
+        source.x, source.y, source.w, source.h,
+        x, y, width, height
+      );
+      ctx.restore();
+    }
+
+    function drawWarpStage(w, h) {
+      const entryX = sx(warpDevice.entry.x);
+      const entryY = sy(warpDevice.entry.y);
+      const entryRadius = warpDevice.entry.r / 720 * w;
+      const stageLeft = sx(warpDevice.stage.left);
+      const stageRight = sx(warpDevice.stage.right);
+      const stageY = sy(warpDevice.stage.y);
+      const stageWidth = stageRight - stageLeft;
+
+      ctx.save();
+      ctx.shadowColor = "rgba(63, 213, 255, .62)";
+      ctx.shadowBlur = Math.max(7, w * .012);
+      ctx.fillStyle = "rgba(4, 22, 35, .94)";
+      ctx.strokeStyle = "rgba(91, 226, 255, .92)";
+      ctx.lineWidth = Math.max(2, w * .004);
+      ctx.beginPath();
+      ctx.moveTo(stageLeft, stageY - sy(7));
+      ctx.bezierCurveTo(
+        stageLeft + stageWidth * .22, stageY + sy(12),
+        stageLeft + stageWidth * .34, stageY - sy(2),
+        sx(360), stageY + sy(15)
+      );
+      ctx.bezierCurveTo(
+        stageLeft + stageWidth * .66, stageY - sy(2),
+        stageLeft + stageWidth * .78, stageY + sy(12),
+        stageRight, stageY - sy(7)
+      );
+      ctx.lineTo(stageRight - sx(12), stageY + sy(22));
+      ctx.bezierCurveTo(
+        stageLeft + stageWidth * .74, stageY + sy(31),
+        stageLeft + stageWidth * .26, stageY + sy(31),
+        stageLeft + sx(12), stageY + sy(22)
+      );
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      const rail = ctx.createLinearGradient(stageLeft, stageY, stageRight, stageY);
+      rail.addColorStop(0, "#4fdfff");
+      rail.addColorStop(.48, "#f4fbff");
+      rail.addColorStop(.52, "#f4fbff");
+      rail.addColorStop(1, "#ff5b77");
+      ctx.strokeStyle = rail;
+      ctx.lineWidth = Math.max(3, w * .006);
+      ctx.beginPath();
+      ctx.moveTo(stageLeft + sx(13), stageY + sy(7));
+      ctx.quadraticCurveTo(sx(360), stageY + sy(28), stageRight - sx(13), stageY + sy(7));
+      ctx.stroke();
+
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "rgba(0, 0, 0, .80)";
+      [stageLeft + sx(18), sx(360), stageRight - sx(18)].forEach((x, index) => {
+        ctx.beginPath();
+        ctx.ellipse(x, stageY + sy(index === 1 ? 24 : 18), sx(index === 1 ? 13 : 10), sy(7), 0, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.strokeStyle = "rgba(255,255,255,.72)";
+      ctx.lineWidth = Math.max(1, w * .002);
+      ctx.beginPath();
+      ctx.ellipse(sx(360), stageY + sy(24), sx(13), sy(7), 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.shadowColor = "rgba(76, 220, 255, .80)";
+      ctx.shadowBlur = Math.max(7, entryRadius * .55);
+      const entryGlow = ctx.createRadialGradient(entryX, entryY, entryRadius * .22, entryX, entryY, entryRadius);
+      entryGlow.addColorStop(0, "rgba(4, 9, 18, .98)");
+      entryGlow.addColorStop(.62, "rgba(8, 31, 49, .98)");
+      entryGlow.addColorStop(1, "rgba(48, 210, 255, .96)");
+      ctx.fillStyle = entryGlow;
+      ctx.strokeStyle = "rgba(235, 252, 255, .94)";
+      ctx.lineWidth = Math.max(2, w * .004);
+      ctx.beginPath();
+      ctx.arc(entryX, entryY, entryRadius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = "#ff5b77";
+      ctx.lineWidth = Math.max(2, entryRadius * .16);
+      ctx.lineCap = "round";
+      for (let i = -1; i <= 1; i++) {
+        const offset = i * entryRadius * .34;
+        ctx.beginPath();
+        ctx.moveTo(entryX - entryRadius * .34 + offset, entryY - entryRadius * .28);
+        ctx.lineTo(entryX + entryRadius * .12 + offset, entryY);
+        ctx.lineTo(entryX - entryRadius * .34 + offset, entryY + entryRadius * .28);
+        ctx.stroke();
+      }
       ctx.restore();
     }
 
@@ -3169,6 +3589,15 @@
           ctx.stroke();
           return;
         }
+        if (p.type === "start" && startRescueGateReady) {
+          const size = r * 4.8;
+          ctx.save();
+          ctx.shadowColor = state.startMeter >= 1 ? "rgba(255, 78, 62, .90)" : "rgba(53, 212, 255, .60)";
+          ctx.shadowBlur = Math.max(6, r * .55);
+          ctx.drawImage(startRescueGateImage, x - size / 2, y - size * .58, size, size);
+          ctx.restore();
+          return;
+        }
         const outer = p.type === "start" ? 2 : 5;
         ctx.fillStyle = "rgba(0,0,0,.62)";
         ctx.beginPath();
@@ -3201,8 +3630,8 @@
 
       ctx.save();
       ctx.translate(cx, cy);
-      ctx.fillStyle = active ? `rgba(255, 211, 106, ${pulse})` : "rgba(255, 255, 255, .08)";
-      ctx.strokeStyle = active ? "#ffd36a" : "rgba(255,255,255,.22)";
+      ctx.fillStyle = active ? `rgba(8, 35, 54, ${Math.min(.94, pulse + .28)})` : "rgba(255, 255, 255, .08)";
+      ctx.strokeStyle = active ? "rgba(82, 218, 255, .88)" : "rgba(255,255,255,.22)";
       ctx.lineWidth = 3;
       roundRect(-dw / 2, -dh / 2, dw, dh, 10 * scale);
       ctx.fill();
@@ -3221,30 +3650,48 @@
       }
       ctx.restore();
 
-      ctx.fillStyle = "#141a22";
-      roundRect(-50 * scale, 24 * scale, 100 * scale, 38 * scale, 8 * scale);
-      ctx.fill();
-      ctx.strokeStyle = open ? "#ffffff" : "rgba(255,255,255,.28)";
-      ctx.stroke();
-      ctx.fillStyle = open ? "#fff4c2" : "rgba(255,255,255,.45)";
-      ctx.font = `900 ${Math.max(12, 18 * scale)}px "Segoe UI", sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(open ? "OPEN" : "LOCK", 0, 44 * scale);
+      if (ambulanceLightBarReady) {
+        // Crop the generated square sprite to its opaque light-bar artwork,
+        // then use each half as a hinged gate leaf.
+        const sourceX = 17;
+        const sourceY = 485;
+        const sourceWidth = 1221;
+        const sourceHeight = 297;
+        const sourceHalf = sourceWidth / 2;
+        const gateWidth = 112 * scale;
+        const gateHalf = gateWidth / 2;
+        const gateHeight = gateWidth * sourceHeight / sourceWidth;
+        const gateY = 42 * scale;
+        const openAngle = flap * Math.PI * .31;
+        const brightness = active ? 1.12 + Math.sin(performance.now() / 90) * .18 : 1;
 
-      ctx.fillStyle = open ? "rgba(255,211,106,.92)" : "rgba(255,255,255,.18)";
-      ctx.beginPath();
-      ctx.moveTo(-32 * scale, 10 * scale);
-      ctx.lineTo((-78 + flap * 30) * scale, (-22 + flap * 12) * scale);
-      ctx.lineTo(-32 * scale, -44 * scale);
-      ctx.closePath();
-      ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(32 * scale, 10 * scale);
-      ctx.lineTo((78 - flap * 30) * scale, (-22 + flap * 12) * scale);
-      ctx.lineTo(32 * scale, -44 * scale);
-      ctx.closePath();
-      ctx.fill();
+        ctx.save();
+        ctx.globalAlpha = 1;
+        ctx.filter = `brightness(${brightness}) saturate(${active ? 1.18 : 1})`;
+        ctx.shadowColor = active ? "rgba(255, 58, 67, .88)" : "rgba(74, 205, 255, .38)";
+        ctx.shadowBlur = active ? 14 * scale : 6 * scale;
+
+        ctx.save();
+        ctx.translate(-gateHalf, gateY);
+        ctx.rotate(-openAngle);
+        ctx.drawImage(
+          ambulanceLightBarImage,
+          sourceX, sourceY, sourceHalf, sourceHeight,
+          0, -gateHeight / 2, gateHalf, gateHeight
+        );
+        ctx.restore();
+
+        ctx.save();
+        ctx.translate(gateHalf, gateY);
+        ctx.rotate(openAngle);
+        ctx.drawImage(
+          ambulanceLightBarImage,
+          sourceX + sourceHalf, sourceY, sourceHalf, sourceHeight,
+          -gateHalf, -gateHeight / 2, gateHalf, gateHeight
+        );
+        ctx.restore();
+        ctx.restore();
+      }
       ctx.restore();
     }
 
@@ -3517,7 +3964,9 @@
       if (els.sinceJackpotSpins) els.sinceJackpotSpins.textContent = state.sinceJackpotSpins;
       els.jackpots.textContent = state.jackpots;
       els.mode.textContent = state.mode;
-      els.rounds.textContent = state.rounds;
+      els.rounds.textContent = state.bonusActive
+        ? `${Math.min(state.rounds + 1, state.bonusTotalRounds)}/${state.bonusTotalRounds} (${state.bonusEntries}/${bonusEntriesPerRound})`
+        : "0";
       els.rate.textContent = state.fired ? `${Math.round(state.wins / state.fired * 100)}%` : "0%";
     }
 
@@ -3549,7 +3998,9 @@
     }
 
     function syncAutoUi() {
-      els.fire.textContent = state.holdPause ? "AUTO HOLD" : state.autoFire ? "AUTO STOP" : "AUTO START";
+      els.fire.textContent = isJackpotActive()
+        ? "BONUS AUTO"
+        : state.holdPause ? "AUTO HOLD" : state.autoFire ? "AUTO STOP" : "AUTO START";
       els.launchHandle.classList.toggle("active", state.autoFire);
       els.launchHandle.setAttribute("aria-pressed", state.autoFire ? "true" : "false");
       els.speedMode.textContent = state.speedMode ? "SPEED x5 ON" : "SPEED x5 OFF";
@@ -3579,21 +4030,24 @@
       while (els.log.children.length > 28) els.log.lastElementChild.remove();
     }
 
-    function pauseAutoForHold() {
+    function pauseAutoForFullHold() {
       if (!state.autoFire || state.holdPause || isJackpotActive()) return;
       state.holdPause = true;
       clearInterval(state.autoTimer);
       state.autoTimer = null;
-      message("保留満タン AUTO一時停止");
+      message(`保留${maxHolds}/${maxHolds} AUTO発射一時停止`);
+      addLog(`保留${maxHolds}/${maxHolds} AUTO発射一時停止`);
       syncAutoUi();
     }
 
-    function resumeAutoFromHold() {
+    function resumeAutoFromFullHold() {
       if (!state.autoFire || !state.holdPause || state.pendingStarts >= maxHolds || isJackpotActive()) return;
       state.holdPause = false;
       clearInterval(state.autoTimer);
       spawnBall();
-      state.autoTimer = setInterval(spawnBall, fireIntervalMs());
+      if (state.autoFire && !state.holdPause) state.autoTimer = setInterval(spawnBall, fireIntervalMs());
+      message(`保留${state.pendingStarts}/${maxHolds} AUTO発射再開`);
+      addLog(`保留${state.pendingStarts}/${maxHolds} AUTO発射再開`);
       syncAutoUi();
     }
 
@@ -3622,11 +4076,22 @@
     }
 
     function toggleAutoFire() {
+      if (isJackpotActive()) {
+        startNormalSpeedBonusAuto();
+        message("大当たり中は通常AUTO右打ち");
+        return;
+      }
       if (state.autoFire) stopAutoFire();
       else startAutoFire();
     }
 
     function toggleSpeedMode() {
+      if (isJackpotActive()) {
+        state.speedMode = false;
+        syncAutoUi();
+        message("大当たり中はSPEED解除・通常AUTO");
+        return;
+      }
       state.speedMode = !state.speedMode;
       if (state.autoFire) {
         clearInterval(state.autoTimer);
@@ -3635,6 +4100,33 @@
       } else {
         syncAutoUi();
       }
+    }
+
+    function syncForceJackpotUi() {
+      if (!els.forceJackpot) return;
+      els.forceJackpot.textContent = state.forceJackpot ? "大当たり強制 ON" : "大当たり強制 OFF";
+      els.forceJackpot.classList.toggle("active", state.forceJackpot);
+      els.forceJackpot.setAttribute("aria-pressed", state.forceJackpot ? "true" : "false");
+    }
+
+    function toggleForceJackpot() {
+      if (isJackpotActive()) {
+        message("大当たり中は強制フラグを変更できません");
+        return;
+      }
+      state.forceJackpot = !state.forceJackpot;
+      syncForceJackpotUi();
+      const text = state.forceJackpot ? "次回START抽選を大当たりにします" : "大当たり強制を解除しました";
+      message(text);
+      addLog(text);
+    }
+
+    function consumeForceJackpotFlag() {
+      if (!state.forceJackpot) return false;
+      state.forceJackpot = false;
+      syncForceJackpotUi();
+      addLog(`<span class="hit">大当たり強制フラグ発動</span>`);
+      return true;
     }
 
     function togglePinEditor() {
@@ -4401,6 +4893,7 @@
 
     els.fire.addEventListener("click", toggleAutoFire);
     els.speedMode.addEventListener("click", toggleSpeedMode);
+    els.forceJackpot.addEventListener("click", toggleForceJackpot);
     els.viewOverview?.addEventListener("click", () => setMachineView(false));
     els.viewBoard?.addEventListener("click", () => setMachineView(true));
     els.pinEdit?.addEventListener("click", togglePinEditor);
@@ -4482,6 +4975,7 @@
     rebuildStatusHud();
     updateNailSettingUi();
     syncAutoUi();
+    syncForceJackpotUi();
     syncPinEditorUi();
     syncHitEditorUi();
     syncLcdDomToHitArea();
